@@ -13,3 +13,4 @@ Route::middleware('auth:sanctum')->group(function () {
 });
 Route::post('/register',[UserController::class, 'register']);
 Route::post('/login', [UserController::class, 'login']);
+Route::get('/getusers', [UserController::class, 'getUsers']);

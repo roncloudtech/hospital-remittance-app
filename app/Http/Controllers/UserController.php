@@ -20,6 +20,7 @@ class UserController extends Controller
             'email' => 'required|string|email|max:255|unique:users',
             'phone_number' => 'nullable|string|unique:users',
             'password' => 'required|string|min:8',
+            'role' => 'required|in:admin,remitter'
         ]);
 
         if($validator->fails()) {
@@ -33,10 +34,11 @@ class UserController extends Controller
         $user->email = $request->input('email');
         $user->password = $request->input('password');
         $user->phone_number = $request->input('phone_number');
+        $user->role = $request->input('role');
         $user->save();
 
         return response()->json([
-            'message' => 'Remitter account created successfully',
+            'message' => $user->role . ' account created successfully',
             'user' => $user
         ], 201);
     }
@@ -54,7 +56,13 @@ class UserController extends Controller
 
             return response()->json([
                 'message' => 'Authentication successful',
-                'user' => $user,
+                // 'user' => $user,
+                'user' => [
+                    'firstname' => $user->firstname,
+                    'lastname' => $user->lastname,
+                    'role' => $user->role,
+                    'email' => $user->email
+                ],
                 'token' => $token
             ]);
         }
@@ -62,5 +70,16 @@ class UserController extends Controller
         return response()->json([
             'message' => 'Invalid military credentials'
         ], 401);
+    }
+
+    public function getUsers() {
+        // Fetch all users using Eloquent ORM
+        $users = User::all();
+        return $users;
+        // Return as JSON response
+        // return response()->json([
+        //     'status' => 'success',
+        //     'data' => $users
+        // ], 200);
     }
 }
