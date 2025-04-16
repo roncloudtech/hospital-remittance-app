@@ -13,12 +13,12 @@ return new class extends Migration
     {
         Schema::create('hospitals', function (Blueprint $table) {
             $table->id();
-            $table->string('hospital_id')->unique(); // Format: XXX-123456
+            $table->string('hospital_id', 10)->unique(); // Format: XXX-123456 (3 letters, 6 numbers)
             $table->string('hospital_name');
-            $table->string('hospital_formation');
+            $table->string('military_division'); // Renamed for clarity (stores military division)
             $table->string('address');
             $table->string('phone_number')->unique();
-            $table->foreignId('hospital_remitter')->constrained('users')->onDelete('cascade'); // Foreign key to users table
+            $table->foreignId('hospital_remitter')->constrained('users')->onDelete('cascade');
             $table->softDeletes();
             $table->timestamps();
         });

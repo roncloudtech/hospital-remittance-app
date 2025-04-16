@@ -76,10 +76,5 @@ class UserController extends Controller
         // Fetch all users using Eloquent ORM
         $users = User::all();
         return $users;
-        // Return as JSON response
-        // return response()->json([
-        //     'status' => 'success',
-        //     'data' => $users
-        // ], 200);
     }
 }
