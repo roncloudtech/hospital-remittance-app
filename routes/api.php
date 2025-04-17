@@ -6,9 +6,9 @@ use App\Http\Controllers\UserController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/user', function (Request $request) {
-    return $request->user();
-})->middleware('auth:sanctum');
+// Route::get('/user', function (Request $request) {
+//     return $request->user();
+// })->middleware('auth:sanctum');
 
 // Route::middleware('auth:sanctum')->group(function () {
 // });
@@ -18,6 +18,9 @@ Route::post('/remittances', [RemittanceController::class, 'store']);
 Route::get('/hospitals', [HospitalController::class, 'indexForRemitter']);
 Route::post('/addhospital', [HospitalController::class, 'addHospital']);
 Route::get('/gethospitals', [HospitalController::class, 'getHospitals']);
+// Route::post('/fetchremitterhospitals', [HospitalController::class, 'fetchRemitterHospitals']);
+// routes/api.php
+Route::middleware(['auth:sanctum'])->get('/my-hospitals', [HospitalController::class, 'fetchRemitterHospitals']);
 Route::post('/register',[UserController::class, 'register']);
 Route::post('/login', [UserController::class, 'login']);
 

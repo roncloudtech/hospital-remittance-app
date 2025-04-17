@@ -8,15 +8,11 @@ use Illuminate\Support\Facades\Validator;
 
 class HospitalController extends Controller
 {
-    public function getHospital() {
+    public function getHospital()
+    {
         // Fetch all users using Eloquent ORM
         $hospitals = Hospital::all();
         return $hospitals;
-        // Return as JSON response
-        // return response()->json([
-        //     'status' => 'success',
-        //     'data' => $users
-        // ], 200);
     }
     // Get all hospitals
     public function index()
@@ -36,11 +32,9 @@ class HospitalController extends Controller
             'phone_number' => 'required|string|unique:hospitals',
             'hospital_remitter' => 'required|exists:users,id',
         ]);
-        if($validator->fails()) {
-            return response()->json(["errors" => $validator->errors()], 400) ;
+        if ($validator->fails()) {
+            return response()->json(["errors" => $validator->errors()], 400);
         }
-
-        // return "Store";
 
         $hospital = new Hospital;
         $hospital->hospital_id = $request->input('hospital_id');
@@ -58,9 +52,33 @@ class HospitalController extends Controller
     }
 
     // Fetch all hospitals
-    public function getHospitals() {
+    public function getHospitals()
+    {
         $hospitals = Hospital::all();
         return $hospitals;
+    }
+
+    public function fetchRemitterHospitals(Request $request)
+    {
+        try {
+            // Get authenticated user's ID
+            $remitterId = auth()->id(); // Changed from $request->input()
+
+            $hospitals = Hospital::where('hospital_remitter', $remitterId)
+                ->get();
+
+            return response()->json([
+                'success' => true,
+                'hospitals' => $hospitals
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch hospitals',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 
     // Get a single hospital
