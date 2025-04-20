@@ -1,31 +1,38 @@
 <?php
 
+use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\UserController;
 use App\Http\Controllers\HospitalController;
 use App\Http\Controllers\RemittanceController;
-use App\Http\Controllers\UserController;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Route;
 
-// Route::get('/user', function (Request $request) {
-//     return $request->user();
-// })->middleware('auth:sanctum');
+/*
+|--------------------------------------------------------------------------
+| Public Routes
+|--------------------------------------------------------------------------
+*/
 
-// Route::middleware('auth:sanctum')->group(function () {
-// });
-// Protected routes here
-Route::get('/getusers', [UserController::class, 'getUsers']);
-Route::post('/remittances', [RemittanceController::class, 'store']);
-Route::get('/hospitals', [HospitalController::class, 'indexForRemitter']);
-Route::post('/addhospital', [HospitalController::class, 'addHospital']);
-Route::get('/gethospitals', [HospitalController::class, 'getHospitals']);
-// Route::post('/fetchremitterhospitals', [HospitalController::class, 'fetchRemitterHospitals']);
-// routes/api.php
-Route::middleware(['auth:sanctum'])->get('/my-hospitals', [HospitalController::class, 'fetchRemitterHospitals']);
-Route::post('/register',[UserController::class, 'register']);
+Route::post('/register', [UserController::class, 'register']);
 Route::post('/login', [UserController::class, 'login']);
 
+/*
+|--------------------------------------------------------------------------
+| Protected Routes (Authenticated via Sanctum)
+|--------------------------------------------------------------------------
+*/
+Route::middleware('auth:sanctum')->group(function () {
 
-// Route::middleware(['auth:sanctum', 'remitter'])->group(function () {
-//     Route::post('/remittances', [RemittanceController::class, 'store']);
-//     Route::get('/hospitals', [HospitalController::class, 'indexForRemitter']);
-// });
+    // User Management
+    Route::get('/getusers', [UserController::class, 'getUsers']);
+
+    // Remittance
+    Route::post('/remittances', [RemittanceController::class, 'store']);
+    Route::get('/getremittances', [RemittanceController::class, 'getRemittances']);
+    // Route::get('/getremittances', [RemittanceController::class, 'fetchRemitterRemittances']);
+    
+
+    // Hospitals
+    Route::get('/hospitals', [HospitalController::class, 'indexForRemitter']);
+    Route::get('/gethospitals', [HospitalController::class, 'getHospitals']);
+    Route::post('/addhospital', [HospitalController::class, 'addHospital']);
+    Route::get('/my-hospitals', [HospitalController::class, 'fetchRemitterHospitals']);
+});

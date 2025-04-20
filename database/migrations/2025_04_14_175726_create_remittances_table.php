@@ -19,7 +19,7 @@ return new class extends Migration
             $table->date('transaction_date');
             $table->text('description')->nullable();
             $table->string('payment_reference')->unique();
-            $table->string('payment_status')->default('pending');
+            $table->enum('payment_status', ['success', 'pending', 'decline'])->default('pending');
             $table->foreignId('updated_by')->nullable()->constrained('users')->nullOnDelete();
             $table->string('payment_method');
             $table->softDeletes();
