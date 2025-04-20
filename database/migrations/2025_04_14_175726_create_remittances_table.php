@@ -20,10 +20,12 @@ return new class extends Migration
             $table->text('description')->nullable();
             $table->string('payment_reference')->unique();
             $table->string('payment_status')->default('pending');
-            $table->boolean('payment_verified')->default(false);
-            $table->text('payment_response')->nullable();
+            $table->foreignId('updated_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->string('payment_method');
+            $table->softDeletes();
             $table->timestamps();
         });
+        
     }
 
     /**
