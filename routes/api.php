@@ -13,9 +13,32 @@ use App\Http\Controllers\RemittanceController;
 
 Route::post('/register', [UserController::class, 'register']);
 Route::post('/login', [UserController::class, 'login']);
+Route::post('/logout', [UserController::class, 'logout']);
+// Route::post('/logout', function (Request $request) {
+//     try {
+//         // Revoke current token
+//         $request->user()->currentAccessToken()->delete();
+        
+//         // Or revoke all tokens
+//         // $request->user()->tokens()->delete();
+
+//         return response()->json([
+//             'success' => true,
+//             'message' => 'Successfully logged out'
+//         ]);
+        
+//     } catch (\Exception $e) {
+//         return response()->json([
+//             'success' => false,
+//             'message' => 'Logout failed'
+//         ], 500);
+//     }
+// })->middleware('auth:sanctum');
+
 
 /*
 |--------------------------------------------------------------------------
+
 | Protected Routes (Authenticated via Sanctum)
 |--------------------------------------------------------------------------
 */

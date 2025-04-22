@@ -72,6 +72,18 @@ class UserController extends Controller
         ], 401);
     }
 
+    public function logout(Request $request)
+    {
+        // Revoke the current access token
+        // $request->user()->currentAccessToken()->delete();
+        // Revoke all tokens for the user
+        $request->user()->tokens()->delete();
+
+        return response()->json([
+            'message' => 'Logout successful'
+        ]);
+    }
+
     public function getUsers() {
         // Fetch all users using Eloquent ORM
         $users = User::all();
