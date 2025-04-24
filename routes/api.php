@@ -14,7 +14,6 @@ use App\Http\Controllers\RemittanceController;
 Route::post('/register', [UserController::class, 'register']);
 Route::post('/login', [UserController::class, 'login']);
 Route::post('/logout', [UserController::class, 'logout']);
-// Route::post('/logout', function (Request $request) {
 //     try {
 //         // Revoke current token
 //         $request->user()->currentAccessToken()->delete();
@@ -50,8 +49,8 @@ Route::middleware('auth:sanctum')->group(function () {
     // Remittance
     Route::post('/remittances', [RemittanceController::class, 'store']);
     Route::get('/getremittances', [RemittanceController::class, 'getRemittances']);
-    // Route::get('/getremittances', [RemittanceController::class, 'fetchRemitterRemittances']);
-    
+    Route::get('/allremittances', [RemittanceController::class, 'allRemittances']);
+    Route::patch('/updateremittance/{id}/{action}', [RemittanceController::class, 'updateRemittance']);
 
     // Hospitals
     Route::get('/hospitals', [HospitalController::class, 'indexForRemitter']);

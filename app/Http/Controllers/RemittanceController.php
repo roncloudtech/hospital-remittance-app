@@ -13,13 +13,13 @@ class RemittanceController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'hospital_id'        => 'required|exists:hospitals,id',
-            'amount'             => 'required|numeric|min:0.01',
-            'payment_method'     => 'required|in:Paystack,Bank Deposit',
-            'payment_status'     => 'required|in:pending,success,decline',
-            'payment_reference'  => 'required|string|unique:remittances,payment_reference',
-            'transaction_date'   => 'required|date',
-            'description'        => 'nullable|string',
+            'hospital_id' => 'required|exists:hospitals,id',
+            'amount' => 'required|numeric|min:0.01',
+            'payment_method' => 'required|in:Paystack,Bank Deposit',
+            'payment_status' => 'required|in:pending,success,decline',
+            'payment_reference' => 'required|string|unique:remittances,payment_reference',
+            'transaction_date' => 'required|date',
+            'description' => 'nullable|string',
         ]);
 
         try {
@@ -95,6 +95,56 @@ class RemittanceController extends Controller
                 'error' => $e->getMessage()
             ], 500);
         }
+    }
+
+    public function allRemittances()
+    {
+        try {
+            $query = Remittance::with(['hospital', 'remitter'])
+                ->orderBy('transaction_date', 'desc');
+
+            $transactions = $query->paginate(10);
+
+            return response()->json([
+                'success' => true,
+                'data' => $transactions
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('Get Remittances Error: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch transactions.'
+            ], 500);
+        }
+    }
+
+    public function updateRemittance($id, $action)
+    {
+        $remittance = Remittance::find($id);
+
+        if (!$remittance) {
+            return response()->json([
+                'success' => false, 
+                'message' => 'Remittance not found'
+            ], 404);
+        }
+
+        if ($remittance->payment_status === 'success' && $action === 'success') {
+            return response()->json([
+                'success' => false, 
+                'message' => 'Remittance already approved'
+            ], 400);
+        }
+
+        $remittance->payment_status = $action;
+        $remittance->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => "Remittance $action ",
+            'data' => $remittance,
+        ]);
     }
 }
 
