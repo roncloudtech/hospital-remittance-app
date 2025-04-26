@@ -119,6 +119,7 @@ class RemittanceController extends Controller
         }
     }
 
+    // Admin approve or decline
     public function updateRemittance($id, $action)
     {
         $remittance = Remittance::find($id);

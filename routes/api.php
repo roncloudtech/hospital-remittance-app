@@ -57,4 +57,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/gethospitals', [HospitalController::class, 'getHospitals']);
     Route::post('/addhospital', [HospitalController::class, 'addHospital']);
     Route::get('/my-hospitals', [HospitalController::class, 'fetchRemitterHospitals']);
+    Route::put('/hospital/update/{id}', [HospitalController::class, 'updateHospital']);
+
+
 });

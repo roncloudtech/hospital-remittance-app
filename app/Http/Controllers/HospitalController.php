@@ -8,18 +8,6 @@ use Illuminate\Support\Facades\Validator;
 
 class HospitalController extends Controller
 {
-    public function getHospital()
-    {
-        // Fetch all users using Eloquent ORM
-        $hospitals = Hospital::all();
-        return $hospitals;
-    }
-    // Get all hospitals
-    public function index()
-    {
-        return Hospital::with('creator')->get();
-    }
-
     // Create a new hospital
     public function addHospital(Request $request)
     {
@@ -58,6 +46,7 @@ class HospitalController extends Controller
         return $hospitals;
     }
 
+    // Fetch all hospital belonging to a particular remitter
     public function fetchRemitterHospitals(Request $request)
     {
         try {
@@ -87,9 +76,17 @@ class HospitalController extends Controller
         return $hospital->load('creator');
     }
 
-    // Update a hospital
-    public function update(Request $request, Hospital $hospital)
+    public function updateHospital($id, Request $request)
     {
+        $hospital = Hospital::find($id);
+
+        if (!$hospital) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Hospital not found'
+            ], 404);
+        }
+
         $request->validate([
             'hospital_id' => 'string|max:10|unique:hospitals,hospital_id,' . $hospital->id,
             'hospital_name' => 'string',
@@ -100,8 +97,14 @@ class HospitalController extends Controller
         ]);
 
         $hospital->update($request->all());
-        return $hospital;
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Hospital updated successfully',
+            'data' => $hospital
+        ]);
     }
+
 
     // Delete a hospital (soft delete)
     public function destroy(Hospital $hospital)
