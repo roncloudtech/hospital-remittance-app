@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\TicketController;
 use App\Http\Controllers\HospitalController;
 use App\Http\Controllers\RemittanceController;
 
@@ -15,7 +16,6 @@ Route::post('/login', [UserController::class, 'login']);
 Route::post('/logout', [UserController::class, 'logout']);
 /*
 |--------------------------------------------------------------------------
-
 | Protected Routes (Authenticated via Sanctum)
 |--------------------------------------------------------------------------
 */
@@ -39,5 +39,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/my-hospitals', [HospitalController::class, 'fetchRemitterHospitals']);
     Route::put('/hospital/update/{id}', [HospitalController::class, 'updateHospital']);
 
+    // Tickets
+    Route::post('/tickets', [TicketController::class, 'store']);
+    Route::get('/admin/tickets', [TicketController::class, 'allTickets']);
+    Route::get('/user/tickets', [TicketController::class, 'userTickets']);
+
 
 });
+
+

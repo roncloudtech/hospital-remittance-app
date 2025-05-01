@@ -41,10 +41,17 @@ return [
         'public' => [
             'driver' => 'local',
             'root' => storage_path('app/public'),
-            'url' => env('APP_URL').'/storage',
+            'url' => env('APP_URL') . '/storage',
             'visibility' => 'public',
             'throw' => false,
             'report' => false,
+        ],
+
+        'tickets_evidences' => [
+            'driver' => 'local',
+            'root' => storage_path('app/public/evidences'),
+            'url' => env('APP_URL') . '/storage/evidences',
+            'visibility' => 'public',
         ],
 
         's3' => [
@@ -75,6 +82,7 @@ return [
 
     'links' => [
         public_path('storage') => storage_path('app/public'),
+        public_path('evidence') => storage_path('app/public'),
     ],
 
 ];
