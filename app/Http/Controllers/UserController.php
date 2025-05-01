@@ -23,8 +23,8 @@ class UserController extends Controller
             'role' => 'required|in:admin,remitter'
         ]);
 
-        if($validator->fails()) {
-            return response()->json(["errors" => $validator->errors()], 400) ;
+        if ($validator->fails()) {
+            return response()->json(["errors" => $validator->errors()], 400);
         }
 
         // Creating a new user with the entries
@@ -72,19 +72,35 @@ class UserController extends Controller
         ], 401);
     }
 
+    // public function logout(Request $request)
+    // {
+    //     // Revoke the current access token
+    //     // $request->user()->currentAccessToken()->delete();
+    //     // Revoke all tokens for the user
+    //     $request->user()->tokens()->delete();
+
+    //     return response()->json([
+    //         'message' => 'Logout successful'
+    //     ]);
+    // }
+
     public function logout(Request $request)
     {
-        // Revoke the current access token
-        // $request->user()->currentAccessToken()->delete();
-        // Revoke all tokens for the user
-        $request->user()->tokens()->delete();
+        if ($request->user()) {
+            $request->user()->tokens()->delete();
+            return response()->json([
+                'message' => 'Logout successful'
+            ]);
+        }
 
         return response()->json([
-            'message' => 'Logout successful'
-        ]);
+            'message' => 'User not authenticated'
+        ], 401);
     }
 
-    public function getUsers() {
+
+    public function getUsers()
+    {
         // Fetch all users using Eloquent ORM
         $users = User::all();
         return $users;

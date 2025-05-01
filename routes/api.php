@@ -13,17 +13,16 @@ use App\Http\Controllers\RemittanceController;
 */
 
 Route::post('/login', [UserController::class, 'login']);
-Route::post('/logout', [UserController::class, 'logout']);
 /*
 |--------------------------------------------------------------------------
 | Protected Routes (Authenticated via Sanctum)
 |--------------------------------------------------------------------------
 */
 Route::middleware('auth:sanctum')->group(function () {
-    // Registration Management
-    Route::post('/register', [UserController::class, 'register']);
-
+    
     // User Management
+    Route::post('/register', [UserController::class, 'register']);
+    Route::post('/logout', [UserController::class, 'logout']);
     Route::get('/getusers', [UserController::class, 'getUsers']);
 
     // Remittance
