@@ -59,35 +59,6 @@ class TicketController extends Controller
         }
     }
 
-    //All Tickets
-    // public function allTickets(Request $request)
-    // {
-    //     // // Optionally ensure only admins can access
-    //     // if (auth()->user()->role !== 'admin') {
-    //     //     return response()->json([
-    //     //         'success' => false,
-    //     //         'message' => 'Unauthorized access'
-    //     //     ], 403);
-    //     // }
-
-    //     $user = auth()->user();
-    //     if (!$user || $user->role !== 'admin') {
-    //         return response()->json([
-    //             'success' => false,
-    //             'message' => 'Unauthorized access'
-    //         ], 403);
-    //     }
-
-    //     $tickets = Ticket::with('user:id,phone_number,email') // eager load user info
-    //         ->latest()
-    //         ->get();
-
-    //     return response()->json([
-    //         'success' => true,
-    //         'tickets' => $tickets,
-    //     ]);
-    // }
-
     public function allTickets(Request $request)
     {
         try {
@@ -99,7 +70,7 @@ class TicketController extends Controller
                 ], 403);
             }
 
-            $tickets = Ticket::with('user:id,name,email')->latest()->get();
+            $tickets = Ticket::with('user:id,email')->latest()->get();
 
             return response()->json([
                 'success' => true,
