@@ -30,7 +30,9 @@ class TicketController extends Controller
             // Store evidence file if provided
             $path = null;
             if ($request->hasFile('evidence')) {
-                $path = $request->file('evidence')->store('evidences');
+                // $path = $request->file('evidence')->store('evidences');
+                $path = $request->file('evidence')->store('evidences', 'public');
+
             }
 
             // Create and save the ticket
