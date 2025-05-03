@@ -42,8 +42,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/tickets', [TicketController::class, 'store']);
     Route::get('/admin/tickets', [TicketController::class, 'allTickets']);
     Route::get('/user/tickets', [TicketController::class, 'userTickets']);
-
-
+    Route::put('/admin/tickets/{id}/status', [TicketController::class, 'updateStatus']);
 });
 
 

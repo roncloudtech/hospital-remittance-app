@@ -101,4 +101,27 @@ class TicketController extends Controller
             'tickets' => $tickets,
         ]);
     }
+
+    public function updateStatus(Request $request, $id)
+    {
+        $request->validate([
+            'status' => 'required|in:open,resolved,closed',
+        ]);
+
+        $ticket = Ticket::find($id);
+
+        if (!$ticket) {
+            return response()->json(['success' => false, 'message' => 'Ticket not found'], 404);
+        }
+
+        $ticket->status = $request->status;
+        $ticket->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Ticket status updated successfully',
+            'ticket' => $ticket
+        ]);
+    }
+
 }
