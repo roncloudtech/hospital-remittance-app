@@ -31,8 +31,6 @@ class TicketController extends Controller
             $path = null;
             if ($request->hasFile('evidence')) {
                 $path = $request->file('evidence')->store('evidences');
-
-
             }
 
             // Create and save the ticket
@@ -62,34 +60,68 @@ class TicketController extends Controller
     }
 
     //All Tickets
+    // public function allTickets(Request $request)
+    // {
+    //     // // Optionally ensure only admins can access
+    //     // if (auth()->user()->role !== 'admin') {
+    //     //     return response()->json([
+    //     //         'success' => false,
+    //     //         'message' => 'Unauthorized access'
+    //     //     ], 403);
+    //     // }
+
+    //     $user = auth()->user();
+    //     if (!$user || $user->role !== 'admin') {
+    //         return response()->json([
+    //             'success' => false,
+    //             'message' => 'Unauthorized access'
+    //         ], 403);
+    //     }
+
+    //     $tickets = Ticket::with('user:id,phone_number,email') // eager load user info
+    //         ->latest()
+    //         ->get();
+
+    //     return response()->json([
+    //         'success' => true,
+    //         'tickets' => $tickets,
+    //     ]);
+    // }
+
     public function allTickets(Request $request)
     {
-        // Optionally ensure only admins can access
-        if (auth()->user()->role !== 'admin') {
+        try {
+            $user = auth()->user();
+            if (!$user || $user->role !== 'admin') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized access'
+                ], 403);
+            }
+
+            $tickets = Ticket::with('user:id,name,email')->latest()->get();
+
+            return response()->json([
+                'success' => true,
+                'tickets' => $tickets,
+            ]);
+        } catch (\Throwable $e) {
+            \Log::error('Admin ticket fetch error: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'Unauthorized access'
-            ], 403);
+                'message' => 'Error fetching tickets',
+                'error' => $e->getMessage(),
+            ], 500);
         }
-
-        $tickets = Ticket::with('user:id,name,email') // eager load user info
-            ->latest()
-            ->get();
-
-        return response()->json([
-            'success' => true,
-            'tickets' => $tickets,
-        ]);
     }
+
 
     // Remiiter Tickets
     public function userTickets(Request $request)
     {
         $user = $request->user();
 
-        $tickets = Ticket::where('user_id', $user->id)
-            ->latest()
-            ->get();
+        $tickets = Ticket::where('user_id', $user->id)->latest()->get();
 
         return response()->json([
             'success' => true,
