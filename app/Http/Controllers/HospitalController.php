@@ -11,7 +11,6 @@ class HospitalController extends Controller
     // Create a new hospital
     public function addHospital(Request $request)
     {
-        // Validate user entry
         $validator = Validator::make($request->all(), [
             'hospital_id' => 'required|string|max:10|unique:hospitals,hospital_id|min:9',
             'hospital_name' => 'required|string',
@@ -19,7 +18,9 @@ class HospitalController extends Controller
             'address' => 'required|string',
             'phone_number' => 'required|string|unique:hospitals',
             'hospital_remitter' => 'required|exists:users,id',
+            'monthly_remittance_target' => 'required|numeric|min:1',
         ]);
+
         if ($validator->fails()) {
             return response()->json(["errors" => $validator->errors()], 400);
         }
@@ -31,10 +32,11 @@ class HospitalController extends Controller
         $hospital->address = $request->input('address');
         $hospital->phone_number = $request->input('phone_number');
         $hospital->hospital_remitter = $request->input('hospital_remitter');
+        $hospital->monthly_remittance_target = $request->input('monthly_remittance_target');
         $hospital->save();
 
         return response()->json([
-            'message' => $hospital->hospital_name . 'created successfully',
+            'message' => $hospital->hospital_name . ' created successfully',
             'hospital' => $hospital
         ], 201);
     }
@@ -46,21 +48,17 @@ class HospitalController extends Controller
         return $hospitals;
     }
 
-    // Fetch all hospital belonging to a particular remitter
+    // Fetch all hospitals belonging to a particular remitter
     public function fetchRemitterHospitals(Request $request)
     {
         try {
-            // Get authenticated user's ID
-            $remitterId = auth()->id(); // Changed from $request->input()
-
-            $hospitals = Hospital::where('hospital_remitter', $remitterId)
-                ->get();
+            $remitterId = auth()->id();
+            $hospitals = Hospital::where('hospital_remitter', $remitterId)->get();
 
             return response()->json([
                 'success' => true,
                 'hospitals' => $hospitals
             ]);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -76,6 +74,7 @@ class HospitalController extends Controller
         return $hospital->load('creator');
     }
 
+    // Update a hospital
     public function updateHospital($id, Request $request)
     {
         $hospital = Hospital::find($id);
@@ -94,9 +93,18 @@ class HospitalController extends Controller
             'address' => 'string',
             'phone_number' => 'string|unique:hospitals,phone_number,' . $hospital->id,
             'created_by' => 'exists:users,id',
+            'monthly_remittance_target' => 'required|numeric|min:1',
         ]);
 
-        $hospital->update($request->all());
+        $hospital->update($request->only([
+            'hospital_id',
+            'hospital_name',
+            'military_division',
+            'address',
+            'phone_number',
+            'hospital_remitter',
+            'monthly_remittance_target',
+        ]));
 
         return response()->json([
             'success' => true,
@@ -105,8 +113,7 @@ class HospitalController extends Controller
         ]);
     }
 
-
-    // Delete a hospital (soft delete)
+    // Delete a hospital
     public function destroy(Hospital $hospital)
     {
         $hospital->delete();
