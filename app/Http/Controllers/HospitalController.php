@@ -2,8 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use Carbon\Carbon;
 use App\Models\Hospital;
+use App\Models\Remittance;
 use Illuminate\Http\Request;
+use App\Models\HospitalRemittance;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 
 class HospitalController extends Controller
@@ -119,4 +124,115 @@ class HospitalController extends Controller
         $hospital->delete();
         return response()->noContent();
     }
+
+    //  Remitter HospitalSummary
+    public function remitterHospitalsSummary()
+{
+    $user = Auth::user();
+
+    // Only remitters should access this
+    if ($user->role !== 'remitter') {
+        return response()->json(['error' => 'Unauthorized'], 403);
+    }
+
+    $hospitals = Hospital::where('hospital_remitter', $user->id)->get();
+
+    $summary = [];
+
+    foreach ($hospitals as $hospital) {
+        $remittances = HospitalRemittance::where('hospital_id', $hospital->id)
+            ->orderBy('year')
+            ->orderBy('month')
+            ->get();
+
+        $monthlyData = [];
+
+        foreach ($remittances as $remit) {
+            $target = $hospital->monthly_remittance_target;
+
+            // Get total paid from the Remittance table for that month and year
+            $amountPaid = Remittance::where('hospital_id', $hospital->id)
+            ->where('payment_status', 'success')
+                ->whereYear('transaction_date', $remit->year)
+                ->whereMonth('transaction_date', $remit->month)
+                ->sum('amount');
+
+            $balance = $target - $amountPaid;
+
+            $monthlyData[] = [
+                'month' => $remit->month,
+                'year' => $remit->year,
+                'target' => $target,
+                'amount_paid' => $amountPaid,
+                'balance' => $balance,
+            ];
+        }
+
+        $summary[] = [
+            'hospital_id' => $hospital->id,
+            'hospital_name' => $hospital->hospital_name,
+            'monthly_target' => $hospital->monthly_remittance_target,
+            'records' => $monthlyData,
+        ];
+    }
+
+    return response()->json([
+        'success' => true,
+        'data' => $summary
+    ]);
+}
+
+
+    // public function remitterHospitalsSummary()
+    // {
+    //     $user = Auth::user();
+
+    //     // Only remitters should access this
+    //     if ($user->role !== 'remitter') {
+    //         return response()->json(['error' => 'Unauthorized'], 403);
+    //     }
+
+    //     $hospitals = Hospital::where('hospital_remitter', $user->id)->get();
+    //     $now = Carbon::now();
+    //     $currentMonth = $now->month;
+    //     $currentYear = $now->year;
+
+    //     $summary = [];
+
+    //     foreach ($hospitals as $hospital) {
+    //         $remittances = HospitalRemittance::where('hospital_id', $hospital->id)
+    //             ->orderBy('year')
+    //             ->orderBy('month')
+    //             ->get();
+
+    //         $monthlyData = [];
+
+    //         foreach ($remittances as $remit) {
+    //             $target = $hospital->monthly_remittance_target;
+    //             $amountPaid = $remit->amount_paid;
+    //             $balance = $target - $amountPaid;
+
+    //             $monthlyData[] = [
+    //                 // 'month' => Carbon::create()->month($remit->month)->format('F'),
+    //                 'month' => $remit->month,
+    //                 'year' => $remit->year,
+    //                 'target' => $target,
+    //                 'amount_paid' => $amountPaid,
+    //                 'balance' => $balance,
+    //             ];
+    //         }
+
+    //         $summary[] = [
+    //             'hospital_id' => $hospital->id,
+    //             'hospital_name' => $hospital->hospital_name,
+    //             'monthly_target' => $hospital->monthly_remittance_target,
+    //             'records' => $monthlyData,
+    //         ];
+    //     }
+
+    //     return response()->json([
+    //         'success' => true,
+    //         'data' => $summary
+    //     ]);
+    // }
 }

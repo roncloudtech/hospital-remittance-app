@@ -22,17 +22,17 @@ return new class extends Migration {
             $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
         });
 
-        Schema::create('ticket_replies', function (Blueprint $table) {
-            $table->id();
-            $table->unsignedBigInteger('ticket_id');
-            $table->unsignedBigInteger('user_id'); // can be admin or remitter
-            $table->text('message');
-            $table->string('attachment')->nullable();
-            $table->timestamps();
+        // Schema::create('ticket_replies', function (Blueprint $table) {
+        //     $table->id();
+        //     $table->unsignedBigInteger('ticket_id');
+        //     $table->unsignedBigInteger('user_id'); // can be admin or remitter
+        //     $table->text('message');
+        //     $table->string('attachment')->nullable();
+        //     $table->timestamps();
 
-            $table->foreign('ticket_id')->references('id')->on('tickets')->onDelete('cascade');
-            $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
-        });
+        //     $table->foreign('ticket_id')->references('id')->on('tickets')->onDelete('cascade');
+        //     $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
+        // });
     }
 
     /**
@@ -42,7 +42,7 @@ return new class extends Migration {
     {
         DB::statement('SET FOREIGN_KEY_CHECKS=0;');
         Schema::dropIfExists('tickets');
-        Schema::dropIfExists('ticket_replies');
+        // Schema::dropIfExists('ticket_replies');
         DB::statement('SET FOREIGN_KEY_CHECKS=1;');
 
         // Schema::dropIfExists('tickets');
