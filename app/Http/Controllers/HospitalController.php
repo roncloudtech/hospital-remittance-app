@@ -53,6 +53,28 @@ class HospitalController extends Controller
         return $hospitals;
     }
 
+    // Fetch all hospitals
+    public function oneHospital($id)
+    {
+        try {
+        // $hospital = Hospital::where('hospital_id', $id)->first();
+        $hospital = Hospital::with('hospital_id')->findOrFail($id);
+
+        return response()->json([
+                'success' => true,
+                'hospitals' => $hospital,
+                'id' => $id,
+            ],200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch hospitals',
+                'error' => $e->getMessage(),
+                'e' => $e,
+            ], 500);
+        }
+    }
+
     // Fetch all hospitals belonging to a particular remitter
     public function fetchRemitterHospitals(Request $request)
     {
@@ -63,7 +85,7 @@ class HospitalController extends Controller
             return response()->json([
                 'success' => true,
                 'hospitals' => $hospitals
-            ]);
+            ],200);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -127,112 +149,124 @@ class HospitalController extends Controller
 
     //  Remitter HospitalSummary
     public function remitterHospitalsSummary()
-{
-    $user = Auth::user();
+    {
+        $user = Auth::user();
 
-    // Only remitters should access this
-    if ($user->role !== 'remitter') {
-        return response()->json(['error' => 'Unauthorized'], 403);
-    }
+        // Only remitters should access this
+        if ($user->role !== 'remitter') {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
 
-    $hospitals = Hospital::where('hospital_remitter', $user->id)->get();
+        $hospitals = Hospital::where('hospital_remitter', $user->id)->get();
 
-    $summary = [];
+        $summary = [];
 
-    foreach ($hospitals as $hospital) {
-        $remittances = HospitalRemittance::where('hospital_id', $hospital->id)
-            ->orderBy('year')
-            ->orderBy('month')
-            ->get();
+        foreach ($hospitals as $hospital) {
+            $remittances = HospitalRemittance::where('hospital_id', $hospital->id)
+                ->orderBy('year')
+                ->orderBy('month')
+                ->get();
 
-        $monthlyData = [];
+            $monthlyData = [];
 
-        foreach ($remittances as $remit) {
-            $target = $hospital->monthly_remittance_target;
+            foreach ($remittances as $remit) {
+                $target = $hospital->monthly_remittance_target;
 
-            // Get total paid from the Remittance table for that month and year
-            $amountPaid = Remittance::where('hospital_id', $hospital->id)
-            ->where('payment_status', 'success')
-                ->whereYear('transaction_date', $remit->year)
-                ->whereMonth('transaction_date', $remit->month)
-                ->sum('amount');
+                // Get total paid from the Remittance table for that month and year
+                $amountPaid = Remittance::where('hospital_id', $hospital->id)
+                    ->where('payment_status', 'success')
+                    ->whereYear('transaction_date', $remit->year)
+                    ->whereMonth('transaction_date', $remit->month)
+                    ->sum('amount');
 
-            $balance = $target - $amountPaid;
+                $balance = $target - $amountPaid;
 
-            $monthlyData[] = [
-                'month' => $remit->month,
-                'year' => $remit->year,
-                'target' => $target,
-                'amount_paid' => $amountPaid,
-                'balance' => $balance,
+                $monthlyData[] = [
+                    'month' => $remit->month,
+                    'year' => $remit->year,
+                    'target' => $target,
+                    'amount_paid' => $amountPaid,
+                    'balance' => $balance,
+                ];
+            }
+
+            $summary[] = [
+                'hospital_id' => $hospital->id,
+                'hospital_name' => $hospital->hospital_name,
+                'monthly_target' => $hospital->monthly_remittance_target,
+                'records' => $monthlyData,
             ];
         }
 
-        $summary[] = [
-            'hospital_id' => $hospital->id,
-            'hospital_name' => $hospital->hospital_name,
-            'monthly_target' => $hospital->monthly_remittance_target,
-            'records' => $monthlyData,
-        ];
+        return response()->json([
+            'success' => true,
+            'data' => $summary
+        ]);
     }
 
-    return response()->json([
-        'success' => true,
-        'data' => $summary
-    ]);
+    // Admin HospitalSummary
+    public function adminHospitalsSummary()
+{
+    $user = Auth::user();
+
+    // Only admins should access this
+    if ($user->role !== 'admin') {
+        return response()->json(['error' => 'Unauthorized'], 403);
+    }
+
+    try {
+        $hospitals = Hospital::all(); // Get all hospitals
+
+        $summary = [];
+
+        foreach ($hospitals as $hospital) {
+            $remittances = HospitalRemittance::where('hospital_id', $hospital->id)
+                ->orderBy('year')
+                ->orderBy('month')
+                ->get();
+
+            $monthlyData = [];
+
+            foreach ($remittances as $remit) {
+                $target = $hospital->monthly_remittance_target ?? 0;
+
+                $amountPaid = Remittance::where('hospital_id', $hospital->id)
+                    ->where('payment_status', 'success')
+                    ->whereYear('transaction_date', $remit->year)
+                    ->whereMonth('transaction_date', $remit->month)
+                    ->sum('amount');
+
+                $balance = $target - $amountPaid;
+
+                $monthlyData[] = [
+                    'month' => $remit->month,
+                    'year' => $remit->year,
+                    'target' => $target,
+                    'amount_paid' => $amountPaid,
+                    'balance' => $balance,
+                ];
+            }
+
+            $summary[] = [
+                'hospital_id' => $hospital->id,
+                'hospital_name' => $hospital->hospital_name,
+                'monthly_target' => $hospital->monthly_remittance_target,
+                'records' => $monthlyData,
+            ];
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $summary
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to fetch hospital summary',
+            'error' => $e->getMessage()
+        ], 500);
+    }
 }
 
 
-    // public function remitterHospitalsSummary()
-    // {
-    //     $user = Auth::user();
-
-    //     // Only remitters should access this
-    //     if ($user->role !== 'remitter') {
-    //         return response()->json(['error' => 'Unauthorized'], 403);
-    //     }
-
-    //     $hospitals = Hospital::where('hospital_remitter', $user->id)->get();
-    //     $now = Carbon::now();
-    //     $currentMonth = $now->month;
-    //     $currentYear = $now->year;
-
-    //     $summary = [];
-
-    //     foreach ($hospitals as $hospital) {
-    //         $remittances = HospitalRemittance::where('hospital_id', $hospital->id)
-    //             ->orderBy('year')
-    //             ->orderBy('month')
-    //             ->get();
-
-    //         $monthlyData = [];
-
-    //         foreach ($remittances as $remit) {
-    //             $target = $hospital->monthly_remittance_target;
-    //             $amountPaid = $remit->amount_paid;
-    //             $balance = $target - $amountPaid;
-
-    //             $monthlyData[] = [
-    //                 // 'month' => Carbon::create()->month($remit->month)->format('F'),
-    //                 'month' => $remit->month,
-    //                 'year' => $remit->year,
-    //                 'target' => $target,
-    //                 'amount_paid' => $amountPaid,
-    //                 'balance' => $balance,
-    //             ];
-    //         }
-
-    //         $summary[] = [
-    //             'hospital_id' => $hospital->id,
-    //             'hospital_name' => $hospital->hospital_name,
-    //             'monthly_target' => $hospital->monthly_remittance_target,
-    //             'records' => $monthlyData,
-    //         ];
-    //     }
-
-    //     return response()->json([
-    //         'success' => true,
-    //         'data' => $summary
-    //     ]);
-    // }
 }

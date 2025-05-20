@@ -21,6 +21,7 @@ Route::post('/remittance', [HospitalRemittanceController::class, 'store']);
 |--------------------------------------------------------------------------
 */
 Route::post('/register', [UserController::class, 'register']);
+Route::get('/onehospital/{id}', [HospitalController::class, 'oneHospital']);
 Route::middleware('auth:sanctum')->group(function () {
     
     // User Management
@@ -29,6 +30,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Remittance
     Route::post('/remittances', [RemittanceController::class, 'store']);
+    Route::get('/admin-hospitals-summary', [HospitalController::class, 'adminHospitalsSummary']);
     Route::get('/remitter-hospitals-summary', [HospitalController::class, 'remitterHospitalsSummary']);
     Route::get('/getremittances', [RemittanceController::class, 'getRemittances']);
     Route::get('/allremittances', [RemittanceController::class, 'allRemittances']);
@@ -37,6 +39,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Hospitals
     Route::get('/hospitals', [HospitalController::class, 'indexForRemitter']);
     Route::get('/gethospitals', [HospitalController::class, 'getHospitals']);
+    // Route::get('/onehospital/{id}', [HospitalController::class, 'oneHospital']);
     Route::post('/addhospital', [HospitalController::class, 'addHospital']);
     Route::get('/my-hospitals', [HospitalController::class, 'fetchRemitterHospitals']);
     Route::put('/hospital/update/{id}', [HospitalController::class, 'updateHospital']);
