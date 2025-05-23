@@ -237,7 +237,7 @@ class HospitalController extends Controller
                     ->whereMonth('transaction_date', $remit->month)
                     ->sum('amount');
 
-                $balance = $target - $amountPaid;
+                $balance = $amountPaid - $target;
 
                 $monthlyData[] = [
                     'month' => $remit->month,
