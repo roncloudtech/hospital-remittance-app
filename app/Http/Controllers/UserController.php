@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+// use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
 
 class UserController extends Controller
@@ -36,10 +38,56 @@ class UserController extends Controller
         $user->role = $request->input('role');
         $user->save();
 
+
+        // Send password reset link to user
+        Mail::to($user->email)->send(new \App\Mail\UserPasswordReset($user));
+        // Password::sendResetLink(['email' => $user->email]);
+
         return response()->json([
             'message' => $user->role . ' account created successfully',
             'user' => $user
         ], 201);
+    }
+
+    // User Reset Password
+    public function passwordReset(Request $request)
+    {
+        $validator = Validator::make($request->all(),[
+            'id' => 'required|numeric',
+            'email' => 'required|email',
+            'password' => 'required|string|same:confirm',
+            'confirm' => 'required|string|same:password',
+        ]);
+
+        if($validator->fails()) {
+            return response()->json([
+                'errors' => $validator->errors(),
+            ],400);
+        }
+
+        try {
+            $user = User::where('email', $request->email)->findOrFail( $request->id)->first();
+            
+            if(!$user){
+                return response()->json([
+                    'error' => 'Change of Password Failed',
+                ],400);
+            }
+
+            if($user) {
+                User::where('email', $user->email)->update([
+                    'password' => $user->password,
+                ]);
+                $user->save();
+                return response()->json([
+                    'message' => 'Password changed successfully',
+                ], 200);
+            }
+        } catch(\Exception $error) {
+            return response()->json([
+                'errors' => $error,
+            ], 500);
+        }
     }
 
     public function login(Request $request)
