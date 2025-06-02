@@ -20,12 +20,12 @@ Route::post('/remittance', [HospitalRemittanceController::class, 'store']);
 | Protected Routes (Authenticated via Sanctum)
 |--------------------------------------------------------------------------
 */
-Route::post('/password-reset', [UserController::class, 'passwordReset']);
+
 Route::get('/onehospital/{id}', [HospitalController::class, 'oneHospital']);
+Route::post('/register', [UserController::class, 'register']);
 Route::middleware('auth:sanctum')->group(function () {
     
     // User Management
-    Route::post('/register', [UserController::class, 'register']);
     Route::post('/logout', [UserController::class, 'logout']);
     Route::get('/getusers', [UserController::class, 'getUsers']);
 

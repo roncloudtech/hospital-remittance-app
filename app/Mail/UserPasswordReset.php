@@ -9,26 +9,72 @@ use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Password;
 
 class UserPasswordReset extends Mailable
 {
     use Queueable, SerializesModels;
 
     public $user;
-    public $url;
+    public $tempPassword;
+    public $resetLink;
 
-    public function __construct(User $user)
+    public function __construct(User $user, string $tempPassword)
     {
         $this->user = $user;
-
-        $this->url = url('/reset-password/' . $user->id); 
+        $this->tempPassword = $tempPassword;
+        $this->resetLink = url('/verify-email/' . $user->id);
     }
-
     public function build()
     {
-        return $this->view('emails.user-password-reset');
+        return $this->view('emails.user-password-reset')->with([
+            'tempPassword' => $this->tempPassword,
+            'resetLink' => $this->resetLink,
+        ])->subject('Your Account Credentials');
     }
+
+    // public function build()
+    // {
+    //     return $this->subject('Your Account Credentials')
+    //         ->view('emails.user-password-reset');
+    // }
 }
+
+// class UserPasswordReset extends Mailable
+// {
+//     use Queueable, SerializesModels;
+
+//     public $user;
+//     public $url;
+
+//     public function __construct(User $user)
+//     {
+//         $this->user = $user;
+
+//         $this->url = url('/reset-password/' . $user->id); 
+//     }
+
+//     public function build()
+//     {
+//         return $this->view('emails.user-password-reset');
+//     }
+// }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 //     use Queueable, SerializesModels;
 
 //     /**
