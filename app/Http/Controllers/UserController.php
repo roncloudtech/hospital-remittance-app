@@ -6,16 +6,16 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
-use App\Mail\UserTempPassword;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\Validator;
 
 
 class UserController extends Controller
 {
+    // User Registration
     public function register(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -30,101 +30,102 @@ class UserController extends Controller
             return response()->json(["errors" => $validator->errors()], 400);
         }
 
-        $tempPassword = Str::random(10);
-        $user = new User;
-        $user->firstname = $request->input('first_name');
-        $user->lastname = $request->input('last_name');
-        $user->email = $request->input('email');
-        $user->password = $tempPassword;
-        $user->phone_number = $request->input('phone_number');
-        $user->role = $request->input('role');
-        $user->save();
-
-        Mail::to($user->email)->send( new \App\Mail\UserEmailVerification($user, $tempPassword));
-
-        return response()->json([
-            'user' => $user,
-            'message' => "Register Successfully: Mail Sent",
-        ], 201);
-
-        
-    }
-
-    // User Reset Password
-    public function passwordReset(Request $request)
-    {
-        $validator = Validator::make($request->all(), [
-            'id' => 'required|numeric',
-            'email' => 'required|email',
-            'password' => 'required|string|same:confirm',
-            'confirm' => 'required|string|same:password',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'errors' => $validator->errors(),
-            ], 400);
-        }
-
         try {
-            $user = User::where('email', $request->email)->findOrFail($request->id)->first();
+            $tempPassword = Str::random(10);
+            $user = new User;
+            $user->firstname = $request->input('first_name');
+            $user->lastname = $request->input('last_name');
+            $user->email = $request->input('email');
+            $user->password = $tempPassword;
+            $user->phone_number = $request->input('phone_number');
+            $user->role = $request->input('role');
+            $user->save();
 
-            if (!$user) {
-                return response()->json([
-                    'error' => 'Change of Password Failed',
-                ], 400);
-            }
+            Mail::to($user->email)->send(new \App\Mail\UserEmailVerification($user, $tempPassword));
 
-            if ($user) {
-                User::where('email', $user->email)->update([
-                    'password' => $user->password,
-                ]);
-                $user->save();
-                return response()->json([
-                    'message' => 'Password changed successfully',
-                ], 200);
-            }
+            return response()->json([
+                'user' => $user,
+                'message' => "Register Successfully: Mail Sent",
+            ], 201);
         } catch (\Exception $error) {
             return response()->json([
                 'errors' => $error,
+                'message' => "Registration Failed",
             ], 500);
         }
     }
 
-    // Send Reset Password Email
-    public function reset(Request $request)
+    // Password Reset
+    public function sendResetLink(Request $request)
     {
-        $request->validate([
-            'token' => 'required',
-            'email' => 'required|email',
-            'password' => 'required|min:8|confirmed',
-        ]);
+        $request->validate(['email' => 'required|email']);
 
-        $status = Password::reset(
-            $request->only('email', 'password', 'password_confirmation', 'token'),
-            function ($user, $password) {
-                $user->forceFill([
-                    'password' => $password
-                ])->setRememberToken(Str::random(60));
+        $user = User::where('email', $request->email)->first();
+        if (!$user) {
+            return response()->json(['message' => 'Email not found'], 404);
+        }
 
-                $user->save();
-            }
+        $token = Str::random(64);
+
+        DB::table('password_reset_tokens')->updateOrInsert(
+            ['email' => $request->email],
+            ['token' => $token, 'created_at' => now()]
         );
 
-        return $status === Password::PASSWORD_RESET
-            ? redirect()->route('login')->with('status', __($status))
-            : back()->withErrors(['email' => [__($status)]]);
+        $resetLink = env('FRONTEND_URL') . "/reset-password?token={$token}&email={$user->email}";
+
+
+        // Send email
+        Mail::raw("Reset your password using this link: $resetLink", function ($message) use ($user) {
+            $message->to($user->email);
+            $message->subject('Password Reset');
+        });
+
+        return response()->json(['message' => 'Reset link sent to your email']);
     }
 
-    public function showResetForm(Request $request, $token)
+    // Step 2: Reset Password
+    public function resetPassword(Request $request)
     {
-        $email = $request->query('email');
-
-        return view('auth.reset-password', [
-            'token' => $token,
-            'email' => $email
+        // $request->validate([
+        //     'token' => 'required|string',
+        //     'email' => 'required|email',
+        //     'password' => 'required|string|min:8|confirmed',
+        // ]);
+        $validator = Validator::make($request->all(),[
+            'token' => 'required|string',
+            'email' => 'required|email',
+            'password' => 'required|string|min:8|same:password_confirmation',
+            'password_confirmation' => 'required|string|min:8|same:password',
         ]);
+
+        if ($validator->fails()) {
+            return response()->json(["errors" => $validator->errors()], 400);
+        }
+
+        $record = DB::table('password_reset_tokens')
+            ->where('email', $request->email)
+            ->where('token', $request->token)
+            ->first();
+
+        if (!$record || Carbon::parse($record->created_at)->addMinutes(60)->isPast()) {
+            return response()->json(['message' => 'Invalid or expired token'], 400);
+        }
+
+        $user = User::where('email', $request->email)->first();
+        if (!$user) {
+            return response()->json(['message' => 'User not found'], 404);
+        }
+
+        $user->password = $request->password;
+        $user->save();
+
+        DB::table('password_reset_tokens')->where('email', $request->email)->delete();
+
+        return response()->json(['message' => 'Password has been reset successfully']);
     }
+
+    // Login Methods
     public function login(Request $request)
     {
         $credentials = $request->validate([
@@ -146,11 +147,12 @@ class UserController extends Controller
                     'email' => $user->email
                 ],
                 'token' => $token
-            ]);
+            ],200);
         }
 
         return response()->json([
-            'message' => 'Invalid military credentials'
+            'message' => 'Invalid military credentials',
+
         ], 401);
     }
 

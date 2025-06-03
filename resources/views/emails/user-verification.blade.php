@@ -12,7 +12,7 @@
                 <h2 style="color: #333333; margin-bottom: 20px;">Hello {{ $user->firstname }} {{ $user->lastname }},</h2>
 
                 <p style="font-size: 16px; color: #555555; margin-bottom: 10px;">
-                    You have been registered as a/an <strong>{{ $user->role }}</strong>.
+                    You have been registered as <strong>{{ $user->role }}</strong>.
                 </p>
 
                 <p style="font-size: 16px; color: #555555; margin-bottom: 10px;">
