@@ -173,7 +173,7 @@ class UserController extends Controller
     public function getUsers()
     {
         // Fetch all users using Eloquent ORM
-        $users = User::all();
+        $users = User::where('role', 'remitter')->get();
         return $users;
     }
 }

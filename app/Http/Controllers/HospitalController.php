@@ -3,12 +3,14 @@
 namespace App\Http\Controllers;
 
 use Carbon\Carbon;
+use App\Models\User;
 use App\Models\Hospital;
 use App\Models\Remittance;
 use Illuminate\Http\Request;
 use App\Models\HospitalRemittance;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
 
 class HospitalController extends Controller
@@ -30,20 +32,43 @@ class HospitalController extends Controller
             return response()->json(["errors" => $validator->errors()], 400);
         }
 
-        $hospital = new Hospital;
-        $hospital->hospital_id = $request->input('hospital_id');
-        $hospital->hospital_name = $request->input('hospital_name');
-        $hospital->military_division = $request->input('military_division');
-        $hospital->address = $request->input('address');
-        $hospital->phone_number = $request->input('phone_number');
-        $hospital->hospital_remitter = $request->input('hospital_remitter');
-        $hospital->monthly_remittance_target = $request->input('monthly_remittance_target');
-        $hospital->save();
+        try {
 
-        return response()->json([
-            'message' => $hospital->hospital_name . ' created successfully',
-            'hospital' => $hospital
-        ], 201);
+            $hospital = new Hospital();
+            $hospital->hospital_id = $request->input('hospital_id');
+            $hospital->hospital_name = $request->input('hospital_name');
+            $hospital->military_division = $request->input('military_division');
+            $hospital->address = $request->input('address');
+            $hospital->phone_number = $request->input('phone_number');
+            $hospital->hospital_remitter = $request->input('hospital_remitter');
+            $hospital->monthly_remittance_target = $request->input('monthly_remittance_target');
+            $hospital->save();
+    
+            // Get remitter info
+            $remitter = User::findOrFail($hospital->hospital_remitter);
+            $email = $remitter->email;
+            $name = $remitter->firstname . ' ' . $remitter->lastname;
+    
+            // Send email notification
+            Mail::send('emails.new-hospital-notification', [
+                'hospital' => $hospital,
+                'email' => $email,
+                'name' => $name
+            ], function ($message) use ($hospital, $email, $name) {
+                $message->to($email);
+                $message->subject('New Hospital Assigned');
+            });
+            return response()->json([
+                'message' => $hospital->hospital_name . ' created successfully',
+                'hospital' => $hospital,
+                'user' => $remitter,
+            ], 201);
+        } catch (\Exception $e) {
+            return response()->json([
+                "errors" => $e->getMessage(),
+            ], 500);
+        }
+
     }
 
     // Fetch all hospitals
@@ -53,18 +78,18 @@ class HospitalController extends Controller
         return $hospitals;
     }
 
-    // Fetch all hospitals
+    // Fetch one hospitals
     public function oneHospital($id)
     {
         try {
-        // $hospital = Hospital::where('hospital_id', $id)->first();
-        $hospital = Hospital::with('hospital_id')->findOrFail($id);
+            // $hospital = Hospital::where('hospital_id', $id)->first();
+            $hospital = Hospital::with('hospital_id')->findOrFail($id);
 
-        return response()->json([
+            return response()->json([
                 'success' => true,
                 'hospitals' => $hospital,
                 'id' => $id,
-            ],200);
+            ], 200);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -85,7 +110,7 @@ class HospitalController extends Controller
             return response()->json([
                 'success' => true,
                 'hospitals' => $hospitals
-            ],200);
+            ], 200);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -207,67 +232,67 @@ class HospitalController extends Controller
 
     // Admin HospitalSummary
     public function adminHospitalsSummary()
-{
-    $user = Auth::user();
+    {
+        $user = Auth::user();
 
-    // Only admins should access this
-    if ($user->role !== 'admin') {
-        return response()->json(['error' => 'Unauthorized'], 403);
-    }
+        // Only admins should access this
+        if ($user->role !== 'admin') {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
 
-    try {
-        $hospitals = Hospital::all(); // Get all hospitals
+        try {
+            $hospitals = Hospital::all(); // Get all hospitals
 
-        $summary = [];
+            $summary = [];
 
-        foreach ($hospitals as $hospital) {
-            $remittances = HospitalRemittance::where('hospital_id', $hospital->id)
-                ->orderBy('year')
-                ->orderBy('month')
-                ->get();
+            foreach ($hospitals as $hospital) {
+                $remittances = HospitalRemittance::where('hospital_id', $hospital->id)
+                    ->orderBy('year')
+                    ->orderBy('month')
+                    ->get();
 
-            $monthlyData = [];
+                $monthlyData = [];
 
-            foreach ($remittances as $remit) {
-                $target = $hospital->monthly_remittance_target ?? 0;
+                foreach ($remittances as $remit) {
+                    $target = $hospital->monthly_remittance_target ?? 0;
 
-                $amountPaid = Remittance::where('hospital_id', $hospital->id)
-                    ->where('payment_status', 'success')
-                    ->whereYear('transaction_date', $remit->year)
-                    ->whereMonth('transaction_date', $remit->month)
-                    ->sum('amount');
+                    $amountPaid = Remittance::where('hospital_id', $hospital->id)
+                        ->where('payment_status', 'success')
+                        ->whereYear('transaction_date', $remit->year)
+                        ->whereMonth('transaction_date', $remit->month)
+                        ->sum('amount');
 
-                $balance = $amountPaid - $target;
+                    $balance = $amountPaid - $target;
 
-                $monthlyData[] = [
-                    'month' => $remit->month,
-                    'year' => $remit->year,
-                    'target' => $target,
-                    'amount_paid' => $amountPaid,
-                    'balance' => $balance,
+                    $monthlyData[] = [
+                        'month' => $remit->month,
+                        'year' => $remit->year,
+                        'target' => $target,
+                        'amount_paid' => $amountPaid,
+                        'balance' => $balance,
+                    ];
+                }
+
+                $summary[] = [
+                    'hospital_id' => $hospital->id,
+                    'hospital_name' => $hospital->hospital_name,
+                    'monthly_target' => $hospital->monthly_remittance_target,
+                    'records' => $monthlyData,
                 ];
             }
 
-            $summary[] = [
-                'hospital_id' => $hospital->id,
-                'hospital_name' => $hospital->hospital_name,
-                'monthly_target' => $hospital->monthly_remittance_target,
-                'records' => $monthlyData,
-            ];
+            return response()->json([
+                'success' => true,
+                'data' => $summary
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch hospital summary',
+                'error' => $e->getMessage()
+            ], 500);
         }
-
-        return response()->json([
-            'success' => true,
-            'data' => $summary
-        ]);
-    } catch (\Exception $e) {
-        return response()->json([
-            'success' => false,
-            'message' => 'Failed to fetch hospital summary',
-            'error' => $e->getMessage()
-        ], 500);
     }
-}
 
 
 }

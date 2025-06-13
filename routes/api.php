@@ -25,12 +25,12 @@ Route::get('/onehospital/{id}', [HospitalController::class, 'oneHospital']);
 
 Route::post('/forgot-password', [UserController::class, 'sendResetLink']);
 Route::post('/reset-password', [UserController::class, 'resetPassword']);
-Route::post('/register', [UserController::class, 'register']);
+// Route::post('/register', [UserController::class, 'register']);
 
 Route::middleware('auth:sanctum')->group(function () {
     
     // User Management
-    // Route::post('/register', [UserController::class, 'register']);
+    Route::post('/register', [UserController::class, 'register']);
     Route::post('/logout', [UserController::class, 'logout']);
     Route::get('/getusers', [UserController::class, 'getUsers']);
 
