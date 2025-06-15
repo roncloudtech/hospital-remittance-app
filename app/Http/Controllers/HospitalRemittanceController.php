@@ -97,7 +97,4 @@ class HospitalRemittanceController extends Controller
             'outstanding_balance' => $balance
         ]);
     }
-
-    
-
 }

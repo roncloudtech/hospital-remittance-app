@@ -20,12 +20,19 @@ class RemittanceController extends Controller
             'payment_reference' => 'required|string|unique:remittances,payment_reference',
             'transaction_date' => 'required|date',
             'description' => 'nullable|string',
+            'payment_evidence' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:2048',
         ]);
 
         try {
+            $evidencePath = null;
+            if ($request->hasFile('payment_evidence')) {
+                $evidencePath = $request->file('payment_evidence')->store('payment_evidence', 'public');
+            }
+
             $remittance = Remittance::create([
                 ...$validated,
-                'remitter_id' => $request->user()->id
+                'remitter_id' => $request->user()->id,
+                'payment_evidence' => $evidencePath,
             ]);
 
             return response()->json([

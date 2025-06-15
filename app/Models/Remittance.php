@@ -23,6 +23,7 @@ class Remittance extends Model
         'payment_status',
         'updated_by',
         'payment_method',
+        'payment_evidence',
     ];
 
     /**
