@@ -83,6 +83,7 @@ return [
     'links' => [
         public_path('storage') => storage_path('app/public'),
         public_path('evidence') => storage_path('app/public'),
+        public_path('payment_evidence') => storage_path('app/public/payment_evidence'),
     ],
 
 ];

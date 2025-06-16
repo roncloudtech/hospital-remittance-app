@@ -16,7 +16,8 @@ use Illuminate\Support\Facades\Validator;
 class UserController extends Controller
 {
     // User Registration
-    public function register(Request $request){
+    public function register(Request $request)
+    {
         $validator = Validator::make($request->all(), [
             'first_name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
@@ -91,7 +92,7 @@ class UserController extends Controller
         //     'email' => 'required|email',
         //     'password' => 'required|string|min:8|confirmed',
         // ]);
-        $validator = Validator::make($request->all(),[
+        $validator = Validator::make($request->all(), [
             'token' => 'required|string',
             'email' => 'required|email',
             'password' => 'required|string|min:8|same:password_confirmation',
@@ -146,7 +147,7 @@ class UserController extends Controller
                     'email' => $user->email
                 ],
                 'token' => $token
-            ],200);
+            ], 200);
         }
 
         return response()->json([
@@ -169,10 +170,53 @@ class UserController extends Controller
         ], 401);
     }
 
+    // getall users except admin
     public function getUsers()
     {
         // Fetch all users using Eloquent ORM
         $users = User::where('role', 'remitter')->get();
         return $users;
     }
+
+    // Update User Details
+    public function editUser(Request $request, $id)
+    {
+        // Validate the input
+        $validator = Validator::make($request->all(), [
+            'first_name' => 'required|string|max:255',
+            'last_name' => 'required|string|max:255',
+            'email' => "required|email|unique:users,email,$id",
+            'phone_number' => "nullable|string|unique:users,phone_number,$id",
+            'role' => 'required|in:admin,remitter'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(["errors" => $validator->errors()], 400);
+        }
+
+        try {
+            // Find user
+            $user = User::findOrFail($id);
+
+            // Update fields
+            $user->firstname = $request->input('first_name');
+            $user->lastname = $request->input('last_name');
+            $user->email = $request->input('email');
+            $user->phone_number = $request->input('phone_number');
+            $user->role = $request->input('role');
+
+            $user->save();
+
+            return response()->json([
+                'message' => 'User updated successfully',
+                'user' => $user
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Failed to update user',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
 }
