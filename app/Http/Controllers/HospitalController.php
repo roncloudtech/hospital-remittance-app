@@ -2,13 +2,11 @@
 
 namespace App\Http\Controllers;
 
-use Carbon\Carbon;
 use App\Models\User;
 use App\Models\Hospital;
 use App\Models\Remittance;
 use Illuminate\Http\Request;
 use App\Models\HospitalRemittance;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
@@ -33,7 +31,6 @@ class HospitalController extends Controller
         }
 
         try {
-
             $hospital = new Hospital();
             $hospital->hospital_id = $request->input('hospital_id');
             $hospital->hospital_name = $request->input('hospital_name');
@@ -58,8 +55,9 @@ class HospitalController extends Controller
                 $message->to($email);
                 $message->subject('New Hospital Assigned');
             });
+
             return response()->json([
-                'message' => $hospital->hospital_name . ' created successfully',
+                'message' => $hospital->hospital_name . ' created successfully and a mail has been sent to' . $email,
                 'hospital' => $hospital,
                 'user' => $remitter,
             ], 201);
@@ -82,8 +80,7 @@ class HospitalController extends Controller
     public function oneHospital($id)
     {
         try {
-            // $hospital = Hospital::where('hospital_id', $id)->first();
-            $hospital = Hospital::with('hospital_id')->findOrFail($id);
+            $hospital = Hospital::where('id', $id)->first();
 
             return response()->json([
                 'success' => true,
@@ -195,7 +192,8 @@ class HospitalController extends Controller
             $monthlyData = [];
 
             foreach ($remittances as $remit) {
-                $target = $hospital->monthly_remittance_target;
+                // $target = $hospital->monthly_remittance_target;
+                $target = $remit->monthly_target;
 
                 // Get total paid from the Remittance table for that month and year
                 $amountPaid = Remittance::where('hospital_id', $hospital->id)
@@ -219,7 +217,8 @@ class HospitalController extends Controller
             $summary[] = [
                 'hospital_id' => $hospital->id,
                 'hospital_name' => $hospital->hospital_name,
-                'monthly_target' => $hospital->monthly_remittance_target,
+                // 'monthly_target' => $hospital->monthly_remittance_target,
+                'monthly_target' => $target,
                 'records' => $monthlyData,
             ];
         }
@@ -254,7 +253,8 @@ class HospitalController extends Controller
                 $monthlyData = [];
 
                 foreach ($remittances as $remit) {
-                    $target = $hospital->monthly_remittance_target ?? 0;
+                    // $target = $hospital->monthly_remittance_target ?? 0;
+                    $target = $remit->monthly_target ?? 0;
 
                     $amountPaid = Remittance::where('hospital_id', $hospital->id)
                         ->where('payment_status', 'success')
@@ -276,7 +276,8 @@ class HospitalController extends Controller
                 $summary[] = [
                     'hospital_id' => $hospital->id,
                     'hospital_name' => $hospital->hospital_name,
-                    'monthly_target' => $hospital->monthly_remittance_target,
+                    // 'monthly_target' => $hospital->monthly_remittance_target,
+                    'monthly_target' => $target,
                     'records' => $monthlyData,
                 ];
             }
@@ -293,6 +294,4 @@ class HospitalController extends Controller
             ], 500);
         }
     }
-
-
 }

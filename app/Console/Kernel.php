@@ -15,9 +15,9 @@ class Kernel extends ConsoleKernel
     protected function schedule(Schedule $schedule)
     {
         // $schedule->command('your:command')->daily();
-        $schedule->call(function () {
-            \Log::info('Scheduler is working');
-        })->everyMinute();
+        // $schedule->call(function () {
+        //     \Log::info('Scheduler is working');
+        // })->everyMinute();
 
     }
 

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Hospital;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use App\Models\HospitalRemittance;
 use Illuminate\Support\Facades\DB;
@@ -11,41 +12,35 @@ use Illuminate\Support\Facades\Validator;
 
 class HospitalRemittanceController extends Controller
 {
-    //
+    // Adding new remittance information
     public function store(Request $request)
     {
-        $validator = Validator::make($request->all(),[
+        $validator = Validator::make($request->all(), [
             'hospital_id' => 'required|exists:hospitals,id',
-            'year' => 'required|integer',
-            'month' => 'required|integer|min:1|max:12',
-            'amount_paid' => 'required|numeric|min:0',
+            'monthly_target' => 'required|numeric|min:1',
         ]);
 
         if ($validator->fails()) {
             return response()->json(["errors" => $validator->errors()], 400);
         }
 
-        $remittance = HospitalRemittance::updateOrCreate(
-            [
-                'hospital_id' => $request->hospital_id,
-                'year' => $request->year,
-                'month' => $request->month
-            ],
-            [
-                'amount_paid' => DB::raw('amount_paid + ' . $request->amount_paid)
-            ]
-        );
+        try {
+            $remittance = new HospitalRemittance();
+            $remittance->hospital_id = $request->input('hospital_id');
+            $remittance->year = Carbon::now()->year;
+            $remittance->month = Carbon::now()->month;
+            $remittance->monthly_target = $request->input('monthly_target');
+            $remittance->save();
 
-        return response()->json([
-            'success' => true,
-            'data' => [
-                'target' => $remittance->hospital->monthly_remittance_target,
-                'paid' => $remittance->amount_paid,
-                'balance' => $remittance->balance
-            ]
-        ]);
+            return response()->json([
+                'remittance' => $remittance,
+            ], 201);
+        } catch (\Exception $e) {
+            return response()->json([
+                "errors" => $e->getMessage(),
+            ], 500);
+        }
     }
-
     public function getHospitalMonthlyStatus($hospital_id, $year, $month)
     {
         $hospital = Hospital::findOrFail($hospital_id);
@@ -57,7 +52,8 @@ class HospitalRemittanceController extends Controller
 
         return response()->json([
             'hospital' => $hospital->hospital_name,
-            'target' => $hospital->monthly_remittance_target,
+            // 'target' => $hospital->monthly_remittance_target,
+            'target' => $remittance->monthly_target,
             'paid' => $remittance->amount_paid ?? 0,
             'balance' => $hospital->monthly_remittance_target - ($remittance->amount_paid ?? 0)
         ]);

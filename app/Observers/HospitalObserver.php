@@ -11,20 +11,20 @@ class HospitalObserver
     /**
      * Handle the Hospital "created" event.
      */
-    public function created(Hospital $hospital): void
-    {
-        //
-        $now = Carbon::now();
+    // public function created(Hospital $hospital): void
+    // {
+    //     //
+    //     $now = Carbon::now();
 
-        HospitalRemittance::create([
-            'hospital_id' => $hospital->id,
-            'year' => $now->year,
-            'month' => $now->month,
-            'monthly_target' => $hospital->monthly_target,
-            'amount_paid' => 0,
-            'balance' => $hospital->monthly_target,
-        ]);
-    }
+    //     HospitalRemittance::create([
+    //         'hospital_id' => $hospital->id,
+    //         'year' => $now->year,
+    //         'month' => $now->month,
+    //         'monthly_target' => $hospital->monthly_remittance_target,
+    //         'amount_paid' => 0,
+    //         'balance' => $hospital->monthly_target,
+    //     ]);
+    // }
 
     /**
      * Handle the Hospital "updated" event.
