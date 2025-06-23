@@ -57,7 +57,7 @@ class HospitalController extends Controller
             });
 
             return response()->json([
-                'message' => $hospital->hospital_name . ' created successfully and a mail has been sent to' . $email,
+                'message' => $hospital->hospital_name . ' created successfully and a mail has been sent to ' . $email,
                 'hospital' => $hospital,
                 'user' => $remitter,
             ], 201);

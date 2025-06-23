@@ -178,45 +178,130 @@ class UserController extends Controller
         return $users;
     }
 
-    // Update User Details
-    public function editUser(Request $request, $id)
+    // Fetch a single user
+    public function getUser($id)
     {
-        // Validate the input
-        $validator = Validator::make($request->all(), [
-            'first_name' => 'required|string|max:255',
-            'last_name' => 'required|string|max:255',
-            'email' => "required|email|unique:users,email,$id",
-            'phone_number' => "nullable|string|unique:users,phone_number,$id",
-            'role' => 'required|in:admin,remitter'
-        ]);
+        $user = User::find($id);
 
-        if ($validator->fails()) {
-            return response()->json(["errors" => $validator->errors()], 400);
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'User not found'
+            ], 404);
         }
 
+        return response()->json([
+            'success' => true,
+            'user' => $user
+        ]);
+    }
+
+    // Update User Details
+    public function editUser($id, Request $request)
+    {
+        // Try to find the user
+        $user = User::find($id);
+
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'User not found',
+            ], 404);
+        }
+
+        // Validate input and exclude current user from unique checks
+        $validated = $request->validate([
+            'first_name' => 'required|string|max:255',
+            'last_name' => 'required|string|max:255',
+            'email' => "required|email|unique:users,email,{$id}",
+            'phone_number' => "nullable|string|unique:users,phone_number,{$id}",
+            'role' => 'required|in:admin,remitter',
+        ]);
+
         try {
-            // Find user
-            $user = User::findOrFail($id);
-
-            // Update fields
-            $user->firstname = $request->input('first_name');
-            $user->lastname = $request->input('last_name');
-            $user->email = $request->input('email');
-            $user->phone_number = $request->input('phone_number');
-            $user->role = $request->input('role');
-
+            // Update user fields
+            $user->firstname = $validated['first_name'];
+            $user->lastname = $validated['last_name'];
+            $user->email = $validated['email'];
+            $user->phone_number = $validated['phone_number'];
+            $user->role = $validated['role'];
             $user->save();
 
             return response()->json([
+                'success' => true,
                 'message' => 'User updated successfully',
-                'user' => $user
+                'user' => $user,
             ]);
         } catch (\Exception $e) {
             return response()->json([
+                'success' => false,
                 'message' => 'Failed to update user',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
+
+    // public function editUser($id, Request $request)
+    // {
+    //     // Fetch the exact user 
+    //     $user = User::find($id);
+
+    //     // Returning error if user not found
+    //     if (!$user) {
+    //         return response()->json([
+    //             'success' => false,
+    //             'message' => 'User not found'
+    //         ], 404);
+    //     }
+
+
+
+
+    //     // // Validate the input
+    //     // $validator = Validator::make($request->all(), [
+    //     //     'first_name' => 'required|string|max:255',
+    //     //     'last_name' => 'required|string|max:255',
+    //     //     'email' => "required|email|unique:users,email,$id",
+    //     //     'phone_number' => "nullable|string|unique:users,phone_number,$id",
+    //     //     'role' => 'required|in:admin,remitter'
+    //     // ]);
+
+    //     // Validating User Information
+    //     $request->validate([
+    //         'first_name' => 'required|string|max:255',
+    //         'last_name' => 'required|string|max:255',
+    //         'email' => "required|email|unique:users,email",
+    //         'phone_number' => "nullable|string|unique:users,phone_number",
+    //         'role' => 'required|in:admin,remitter'
+    //     ]);
+
+    //     // if ($validator->fails()) {
+    //     //     return response()->json(["errors" => $validator->errors()], 400);
+    //     // }
+
+    //     try {
+    //         // Find user
+    //         $user = User::findOrFail($id);
+
+    //         // Update fields
+    //         $user->firstname = $request->input('first_name');
+    //         $user->lastname = $request->input('last_name');
+    //         $user->email = $request->input('email');
+    //         $user->phone_number = $request->input('phone_number');
+    //         $user->role = $request->input('role');
+
+    //         $user->save();
+
+    //         return response()->json([
+    //             'message' => 'User updated successfully',
+    //             'user' => $user
+    //         ]);
+    //     } catch (\Exception $e) {
+    //         return response()->json([
+    //             'message' => 'Failed to update user',
+    //             'error' => $e->getMessage()
+    //         ], 500);
+    //     }
+    // }
 
 }

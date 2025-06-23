@@ -32,9 +32,10 @@ Route::middleware('auth:sanctum')->group(function () {
     // User Management
     Route::post('/register', [UserController::class, 'register']);
     Route::post('/logout', [UserController::class, 'logout']);
-    Route::get('/getusers', [UserController::class, 'getUsers']);
+    Route::get('/getusers', [UserController::class, 'getUsers']);Route::get('/users/{id}', [UserController::class, 'getUser']);
+    Route::put('/users/update/{id}', [UserController::class, 'editUser']);
 
-    // Remittance
+    // Remittance Management
     Route::post('/remittances', [RemittanceController::class, 'store']);
     Route::get('/admin-hospitals-summary', [HospitalController::class, 'adminHospitalsSummary']);
     Route::get('/remitter-hospitals-summary', [HospitalController::class, 'remitterHospitalsSummary']);
