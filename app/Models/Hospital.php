@@ -16,7 +16,8 @@ class Hospital extends Model
     protected $fillable = [
         'hospital_id',
         'hospital_name',
-        'hospital_formation',
+        // 'hospital_formation',
+        'military_division',
         'address',
         'phone_number',
         'hospital_remitter',

@@ -240,8 +240,6 @@ class UserController extends Controller
             ], 500);
         }
     }
-
-    // public function editUser($id, Request $request)
     // {
     //     // Fetch the exact user 
     //     $user = User::find($id);
