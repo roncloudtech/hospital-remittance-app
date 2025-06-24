@@ -2,35 +2,23 @@
 
 namespace App\Console;
 
-use Illuminate\Support\Facades\Log;
-use App\Console\Commands\TestSchedule;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
+use Illuminate\Support\Facades\Log;
 
 class Kernel extends ConsoleKernel
 {
-    protected $commands = [
-        TestSchedule::class,
-    ];
-
-    protected function schedule(Schedule $schedule)
+    protected function schedule(Schedule $schedule): void
     {
-        $schedule->command('test:schedule')
-        ->everyMinute()
-        ->withoutOverlapping();
-
-        // $schedule->command('test:schedule')->everyMinute();
-        // $schedule->command('your:command')->daily();
-        // $schedule->call(function () {
-        //     \Log::info('Scheduler is working');
-        // })->everyMinute();
-
+        $schedule->command('remittance:generate-monthly')->everyMinute();
+        $schedule->call(function () {
+            Log::info('✅ Laravel 12 scheduler works at ' . now());
+        })->everyMinute();
     }
 
-    protected function commands()
+    protected function commands(): void
     {
         $this->load(__DIR__.'/Commands');
-
         require base_path('routes/console.php');
     }
 }

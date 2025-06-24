@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class HospitalRemittance extends Model
 {
-    protected $fillable = ['hospital_id', 'year', 'month', 'amount_paid'];
+    protected $fillable = ['hospital_id', 'year', 'month', 'monthly_target', 'amount_paid'];
 
     public function hospital()
     {
