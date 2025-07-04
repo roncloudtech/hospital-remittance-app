@@ -7,7 +7,7 @@ use App\Models\User;
 use App\Models\Hospital;
 use Illuminate\Console\Command;
 use App\Models\HospitalRemittance;
-use Illuminate\Support\Facades\Mail;
+// use Illuminate\Support\Facades\Mail;
 
 class GenerateMonthlyRemittance extends Command
 {

@@ -11,6 +11,8 @@ class Kernel extends ConsoleKernel
     protected function schedule(Schedule $schedule): void
     {
         $schedule->command('remittance:generate-monthly')->everyMinute();
+        $schedule->command('mail:remitter-balances')->everyMinute();
+        // $schedule->command('mail:remitter-balances')->monthlyOn(1, '09:00');
         $schedule->call(function () {
             Log::info('✅ Laravel 12 scheduler works at ' . now());
         })->everyMinute();
