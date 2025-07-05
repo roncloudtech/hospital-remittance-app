@@ -11,6 +11,7 @@ class Kernel extends ConsoleKernel
     protected function schedule(Schedule $schedule): void
     {
         $schedule->command('remittance:generate-monthly')->everyMinute();
+        $schedule->command('remittance:notify-due-remitters')->everyMinute();
         // $schedule->command('remittance:mail-monthly-summary')->monthlyOn(1, '09:00');
         $schedule->command('remittance:mail-monthly-summary')->everyMinute();
         $schedule->call(function () {
@@ -26,5 +27,6 @@ class Kernel extends ConsoleKernel
 
     protected $commands = [
         \App\Console\Commands\MailMonthlyTargetSummary::class,
+        \App\Console\Commands\NotifyRemitterDueBalance::class,
     ];
 }
