@@ -11,7 +11,7 @@ class Hospital extends Model
      * The attributes that are mass assignable.
      *
      * @var list<string>
-    */
+     */
 
     protected $fillable = [
         'hospital_id',
@@ -22,4 +22,10 @@ class Hospital extends Model
         'hospital_remitter',
         'monthly_remittance_target',
     ];
+
+    public function remitter()
+    {
+        return $this->belongsTo(User::class, 'hospital_remitter');
+    }
+
 }
