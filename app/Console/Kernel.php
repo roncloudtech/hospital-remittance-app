@@ -10,8 +10,8 @@ class Kernel extends ConsoleKernel
 {
     protected function schedule(Schedule $schedule): void
     {
-        $schedule->command('remittance:generate-monthly')->everyMinute();
-        $schedule->command('remittance:notify-due-remitters')->dailyAt('9:30');
+        $schedule->command('remittance:generate-monthly')->monthlyOn(1,'01:15');
+        $schedule->command('remittance:notify-due-remitters')->dailyAt('10:00');
         $schedule->command('remittance:mail-monthly-summary')->monthlyOn(1, '09:00');
         // $schedule->command('remittance:mail-monthly-summary')->everyMinute();
         $schedule->call(function () {
