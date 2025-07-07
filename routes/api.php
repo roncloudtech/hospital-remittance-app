@@ -16,16 +16,14 @@ use App\Http\Controllers\HospitalRemittanceController;
 Route::post('/login', [UserController::class, 'login']);
 Route::post('/forgot-password', [UserController::class, 'sendResetLink']);
 Route::post('/reset-password', [UserController::class, 'resetPassword']);
-// Route::post('/remittance', [HospitalRemittanceController::class, 'store']);
+// Route::post('/register', [UserController::class, 'register']);
+
 /*
 |--------------------------------------------------------------------------
 | Protected Routes (Authenticated via Sanctum)
 |--------------------------------------------------------------------------
 */
 
-// Route::get('/onehospital/{id}', [HospitalController::class, 'oneHospital']);
-
-// Route::post('/register', [UserController::class, 'register']);
 
 Route::middleware('auth:sanctum')->group(function () {
 
@@ -35,6 +33,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/getusers', [UserController::class, 'getUsers']);
     Route::get('/users/{id}', [UserController::class, 'getUser']);
     Route::put('/users/update/{id}', [UserController::class, 'editUser']);
+    Route::delete('/users/delete/{id}', [UserController::class, 'deleteUser']);
+    Route::put('/users/restore/{id}', [UserController::class, 'restoreUser']);
 
     // Remittance Management
     Route::post('/remittance', [HospitalRemittanceController::class, 'store']);

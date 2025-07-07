@@ -170,32 +170,25 @@ class UserController extends Controller
         ], 401);
     }
 
-    // getall users except admin
-    public function getUsers()
-    {
-        // Fetch all users using Eloquent ORM
-        $users = User::where('role', 'remitter')->get();
-        return $users;
-    }
-
+    
     // Fetch a single user
     public function getUser($id)
     {
         $user = User::find($id);
-
+        
         if (!$user) {
             return response()->json([
                 'success' => false,
                 'message' => 'User not found'
             ], 404);
         }
-
+        
         return response()->json([
             'success' => true,
             'user' => $user
         ]);
     }
-
+    
     // Update User Details
     public function editUser($id, Request $request)
     {
@@ -240,66 +233,52 @@ class UserController extends Controller
             ], 500);
         }
     }
-    // {
-    //     // Fetch the exact user 
-    //     $user = User::find($id);
 
-    //     // Returning error if user not found
-    //     if (!$user) {
-    //         return response()->json([
-    //             'success' => false,
-    //             'message' => 'User not found'
-    //         ], 404);
-    //     }
+    // getall users except admin
+    public function getUsers()
+    {
+        // Fetch all users using Eloquent ORM
+        $users = User::withTrashed()->where('role', 'remitter')->get();
+        return $users;
+    }
 
+    // Soft Delete User
+    public function deleteUser($id)
+    {
+        // Try to find the user
+        $user = User::find($id);
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'User not found',
+            ], 404);
+        }
+        // Soft delete the user
+        $user->delete();
+        return response()->json([
+            'success' => true,
+            'message' => 'User disabled successfully',
+            'user' => $user,
+        ],200);
+        // return $user;
+    }
 
-
-
-    //     // // Validate the input
-    //     // $validator = Validator::make($request->all(), [
-    //     //     'first_name' => 'required|string|max:255',
-    //     //     'last_name' => 'required|string|max:255',
-    //     //     'email' => "required|email|unique:users,email,$id",
-    //     //     'phone_number' => "nullable|string|unique:users,phone_number,$id",
-    //     //     'role' => 'required|in:admin,remitter'
-    //     // ]);
-
-    //     // Validating User Information
-    //     $request->validate([
-    //         'first_name' => 'required|string|max:255',
-    //         'last_name' => 'required|string|max:255',
-    //         'email' => "required|email|unique:users,email",
-    //         'phone_number' => "nullable|string|unique:users,phone_number",
-    //         'role' => 'required|in:admin,remitter'
-    //     ]);
-
-    //     // if ($validator->fails()) {
-    //     //     return response()->json(["errors" => $validator->errors()], 400);
-    //     // }
-
-    //     try {
-    //         // Find user
-    //         $user = User::findOrFail($id);
-
-    //         // Update fields
-    //         $user->firstname = $request->input('first_name');
-    //         $user->lastname = $request->input('last_name');
-    //         $user->email = $request->input('email');
-    //         $user->phone_number = $request->input('phone_number');
-    //         $user->role = $request->input('role');
-
-    //         $user->save();
-
-    //         return response()->json([
-    //             'message' => 'User updated successfully',
-    //             'user' => $user
-    //         ]);
-    //     } catch (\Exception $e) {
-    //         return response()->json([
-    //             'message' => 'Failed to update user',
-    //             'error' => $e->getMessage()
-    //         ], 500);
-    //     }
-    // }
-
+    // Restore Delete User
+    public function restoreUser($id) 
+    {
+        $user = User::withTrashed()->find($id);
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'User not found',
+            ], 404);
+        }
+        $user->restore();
+        return response()->json([
+            'success' => true,
+            'message' => 'User restored successfully',
+            'user' => $user,
+        ],200);  
+        // return $user;
+    }
 }
