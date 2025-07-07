@@ -52,7 +52,6 @@ class HospitalRemittanceController extends Controller
 
         return response()->json([
             'hospital' => $hospital->hospital_name,
-            // 'target' => $hospital->monthly_remittance_target,
             'target' => $remittance->monthly_target,
             'paid' => $remittance->amount_paid ?? 0,
             'balance' => $hospital->monthly_remittance_target - ($remittance->amount_paid ?? 0)
@@ -63,8 +62,6 @@ class HospitalRemittanceController extends Controller
     {
         $hospital = Hospital::findOrFail($hospital_id);
         $monthlyTarget = $hospital->monthly_remittance_target;
-
-        // Total months passed = ((year - start_year) * 12) + month
         $startYear = HospitalRemittance::where('hospital_id', $hospital_id)->min('year') ?? $year;
         $startMonth = 1;
 

@@ -192,7 +192,6 @@ class HospitalController extends Controller
             $monthlyData = [];
 
             foreach ($remittances as $remit) {
-                // $target = $hospital->monthly_remittance_target;
                 $target = $remit->monthly_target;
 
                 // Get total paid from the Remittance table for that month and year
@@ -202,7 +201,6 @@ class HospitalController extends Controller
                     ->whereMonth('transaction_date', $remit->month)
                     ->sum('amount');
 
-                // $balance = $target - $amountPaid;
                 $balance = $amountPaid - $target;
 
                 $monthlyData[] = [
@@ -217,7 +215,6 @@ class HospitalController extends Controller
             $summary[] = [
                 'hospital_id' => $hospital->id,
                 'hospital_name' => $hospital->hospital_name,
-                // 'monthly_target' => $hospital->monthly_remittance_target,
                 'monthly_target' => $target,
                 'records' => $monthlyData,
             ];
@@ -253,7 +250,6 @@ class HospitalController extends Controller
                 $monthlyData = [];
 
                 foreach ($remittances as $remit) {
-                    // $target = $hospital->monthly_remittance_target ?? 0;
                     $target = $remit->monthly_target ?? 0;
 
                     $amountPaid = Remittance::where('hospital_id', $hospital->id)
@@ -276,7 +272,6 @@ class HospitalController extends Controller
                 $summary[] = [
                     'hospital_id' => $hospital->id,
                     'hospital_name' => $hospital->hospital_name,
-                    // 'monthly_target' => $hospital->monthly_remittance_target,
                     'monthly_target' => $target,
                     'records' => $monthlyData,
                 ];

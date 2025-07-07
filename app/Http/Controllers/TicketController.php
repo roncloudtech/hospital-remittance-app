@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Http\Request;
-use App\Models\TicketReply;
 use App\Models\Ticket;
 use Illuminate\Support\Facades\Validator;
 
@@ -30,7 +29,6 @@ class TicketController extends Controller
             // Store evidence file if provided
             $path = null;
             if ($request->hasFile('evidence')) {
-                // $path = $request->file('evidence')->store('evidences');
                 $path = $request->file('evidence')->store('evidences', 'public');
 
             }
@@ -41,7 +39,6 @@ class TicketController extends Controller
             $ticket->message = $request->input('message');
             $ticket->evidence_path = $path;
             $ticket->user_id = $request->user()->id;
-            // $ticket->user_id = $userId;
             $ticket->save();
 
             return response()->json([
@@ -88,7 +85,6 @@ class TicketController extends Controller
         }
     }
 
-
     // Remiiter Tickets
     public function userTickets(Request $request)
     {
@@ -123,5 +119,4 @@ class TicketController extends Controller
             'ticket' => $ticket
         ]);
     }
-
 }
