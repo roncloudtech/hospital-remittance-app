@@ -68,7 +68,8 @@ class NotifyRemitterDueBalance extends Command
                 'year' => $year,
                 'previousBalance' => $previousBalance,
                 'currentTarget' => $currentTarget,
-                'totalPaid' => $totalPaid,
+                // 'totalPaid' => $totalPaid,
+                'totalPaid' => $currentPaid,
                 'totalDue' => $totalDue,
             ], function ($message) use ($remitter, $hospital, $monthName, $year) {
                 $message->to($remitter->email);

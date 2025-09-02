@@ -16,8 +16,7 @@ use Illuminate\Support\Facades\Validator;
 class UserController extends Controller
 {
     // User Registration
-    public function register(Request $request)
-    {
+    public function register(Request $request){
         $validator = Validator::make($request->all(), [
             'first_name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
