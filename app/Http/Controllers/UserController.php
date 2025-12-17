@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\ActionPerformed;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Support\Str;
@@ -16,7 +17,8 @@ use Illuminate\Support\Facades\Validator;
 class UserController extends Controller
 {
     // User Registration
-    public function register(Request $request){
+    public function register(Request $request)
+    {
         $validator = Validator::make($request->all(), [
             'first_name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
@@ -39,6 +41,14 @@ class UserController extends Controller
             $user->phone_number = $request->input('phone_number');
             $user->role = $request->input('role');
             $user->save();
+
+            // 🔔 Audit log
+            event(new ActionPerformed([
+                'actor_id' => auth()->id() ?? $user->id, // admin creating user or self
+                'actor_role' => auth()->user()?->role ?? $user->role,
+                'action' => 'register',
+                'description' => 'Registered a new user',
+            ]));
 
             Mail::to($user->email)->send(new \App\Mail\UserEmailVerification($user, $tempPassword));
 
@@ -73,7 +83,12 @@ class UserController extends Controller
 
         $resetLink = env('FRONTEND_URL') . "/reset-password?token={$token}&email={$user->email}";
 
-
+        event(new ActionPerformed([
+            'actor_id' => $user->id,
+            'actor_role' => $user->role,
+            'action' => 'send_reset_link',
+            'description' => 'Requested password reset link',
+        ]));
         // Send email
         Mail::raw("Reset your password using this link: $resetLink", function ($message) use ($user) {
             $message->to($user->email);
@@ -86,11 +101,7 @@ class UserController extends Controller
     // Step 2: Reset Password
     public function resetPassword(Request $request)
     {
-        // $request->validate([
-        //     'token' => 'required|string',
-        //     'email' => 'required|email',
-        //     'password' => 'required|string|min:8|confirmed',
-        // ]);
+
         $validator = Validator::make($request->all(), [
             'token' => 'required|string',
             'email' => 'required|email',
@@ -119,6 +130,13 @@ class UserController extends Controller
         $user->password = $request->password;
         $user->save();
 
+        event(new ActionPerformed([
+            'actor_id' => $user->id,
+            'actor_role' => $user->role,
+            'action' => 'reset_password',
+            'description' => 'Reset password successfully',
+        ]));
+
         DB::table('password_reset_tokens')->where('email', $request->email)->delete();
 
         return response()->json(['message' => 'Password has been reset successfully']);
@@ -135,6 +153,26 @@ class UserController extends Controller
         if (Auth::attempt($credentials)) {
             $user = Auth::user();
             $token = $user->createToken('military-health-token')->plainTextToken;
+
+            // Debug: log dispatch to help detect double-dispatch issues
+            \Log::debug('Dispatching ActionPerformed event (login)', [
+                'actor_id' => auth()->id(),
+                'actor_role' => auth()->user()?->role,
+                'time' => now()->toDateTimeString(),
+            ]);
+
+            event(new ActionPerformed([
+                'actor_id' => auth()->id(),
+                'actor_role' => auth()->user()->role,
+                'action' => 'login',
+                'description' => 'User logged in successfully',
+            ]));
+
+            \Log::debug('Dispatched ActionPerformed event (login)', [
+                'actor_id' => auth()->id(),
+                'actor_role' => auth()->user()?->role,
+                'time' => now()->toDateTimeString(),
+            ]);
 
             return response()->json([
                 'message' => 'Authentication successful',
@@ -164,30 +202,37 @@ class UserController extends Controller
             ]);
         }
 
+        event(new ActionPerformed([
+            'actor_id' => $request->user()->id,
+            'actor_role' => $request->user()->role,
+            'action' => 'logout',
+            'description' => 'User logged out',
+        ]));
+
         return response()->json([
             'message' => 'User not authenticated'
         ], 401);
     }
 
-    
+
     // Fetch a single user
     public function getUser($id)
     {
         $user = User::find($id);
-        
+
         if (!$user) {
             return response()->json([
                 'success' => false,
                 'message' => 'User not found'
             ], 404);
         }
-        
+
         return response()->json([
             'success' => true,
             'user' => $user
         ]);
     }
-    
+
     // Update User Details
     public function editUser($id, Request $request)
     {
@@ -218,6 +263,13 @@ class UserController extends Controller
             $user->phone_number = $validated['phone_number'];
             $user->role = $validated['role'];
             $user->save();
+
+            event(new ActionPerformed([
+                'actor_id' => auth()->id(),
+                'actor_role' => auth()->user()?->role,
+                'action' => 'edit_user',
+                'description' => "Edited user {$user->email}",
+            ]));
 
             return response()->json([
                 'success' => true,
@@ -254,16 +306,22 @@ class UserController extends Controller
         }
         // Soft delete the user
         $user->delete();
+        event(new ActionPerformed([
+            'actor_id' => auth()->id(),
+            'actor_role' => auth()->user()?->role,
+            'action' => 'delete_user',
+            'description' => "Deleted user {$user->email}",
+        ]));
         return response()->json([
             'success' => true,
             'message' => 'User disabled successfully',
             'user' => $user,
-        ],200);
+        ], 200);
         // return $user;
     }
 
     // Restore Delete User
-    public function restoreUser($id) 
+    public function restoreUser($id)
     {
         $user = User::withTrashed()->find($id);
         if (!$user) {
@@ -273,11 +331,19 @@ class UserController extends Controller
             ], 404);
         }
         $user->restore();
+
+        event(new ActionPerformed([
+            'actor_id' => auth()->id(),
+            'actor_role' => auth()->user()?->role,
+            'action' => 'restore_user',
+            'description' => "Restored user {$user->email}",
+        ]));
+
         return response()->json([
             'success' => true,
             'message' => 'User restored successfully',
             'user' => $user,
-        ],200);  
+        ], 200);
         // return $user;
     }
 }
