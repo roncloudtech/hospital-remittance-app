@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\ActionPerformed;
 use App\Models\User;
 use App\Models\Hospital;
 use App\Models\Remittance;
@@ -40,12 +41,12 @@ class HospitalController extends Controller
             $hospital->hospital_remitter = $request->input('hospital_remitter');
             $hospital->monthly_remittance_target = $request->input('monthly_remittance_target');
             $hospital->save();
-    
+
             // Get remitter info
             $remitter = User::findOrFail($hospital->hospital_remitter);
             $email = $remitter->email;
             $name = $remitter->firstname . ' ' . $remitter->lastname;
-    
+
             // Send email notification
             Mail::send('emails.new-hospital-notification', [
                 'hospital' => $hospital,
@@ -55,6 +56,19 @@ class HospitalController extends Controller
                 $message->to($email);
                 $message->subject('New Hospital Assigned');
             });
+
+            event(new ActionPerformed([
+                'actor_id' => auth()->id(),
+                'actor_role' => auth()->user()?->role,
+                'action' => 'create_hospital',
+                'description' => 'Created a new hospital and assigned a remitter',
+                'metadata' => [
+                    'hospital_id' => $hospital->hospital_id,
+                    'hospital_name' => $hospital->hospital_name,
+                    'remitter_id' => $remitter->id,
+                    'remitter_email' => $remitter->email,
+                ],
+            ]));
 
             return response()->json([
                 'message' => $hospital->hospital_name . ' created successfully and a mail has been sent to ' . $email,
@@ -141,8 +155,21 @@ class HospitalController extends Controller
             'military_division' => 'string',
             'address' => 'string',
             'phone_number' => 'string|unique:hospitals,phone_number,' . $hospital->id,
-            'created_by' => 'exists:users,id',
+            'hospital_remitter' => 'exists:users,id',
             'monthly_remittance_target' => 'required|numeric|min:1',
+        ]);
+
+        /* -------------------------------------------------
+         | Capture old values BEFORE update
+         |-------------------------------------------------*/
+        $oldValues = $hospital->only([
+            'hospital_id',
+            'hospital_name',
+            'military_division',
+            'address',
+            'phone_number',
+            'hospital_remitter',
+            'monthly_remittance_target',
         ]);
 
         $hospital->update($request->only([
@@ -155,6 +182,34 @@ class HospitalController extends Controller
             'monthly_remittance_target',
         ]));
 
+        /* -------------------------------------------------
+         | Determine changed fields
+         |-------------------------------------------------*/
+        $changes = [];
+        foreach ($oldValues as $key => $oldValue) {
+            if ($hospital->$key != $oldValue) {
+                $changes[$key] = [
+                    'old' => $oldValue,
+                    'new' => $hospital->$key,
+                ];
+            }
+        }
+
+        /* -------------------------------------------------
+         | 🔔 AUDIT LOG EVENT (SINGLE DISPATCH)
+         |-------------------------------------------------*/
+        event(new ActionPerformed([
+            'actor_id' => auth()->id(),
+            'actor_role' => auth()->user()?->role,
+            'action' => 'update_hospital',
+            'description' => 'Updated hospital details',
+            'metadata' => [
+                'hospital_id' => $hospital->hospital_id,
+                'hospital_name' => $hospital->hospital_name,
+                'changes' => $changes,
+            ],
+        ]));
+
         return response()->json([
             'success' => true,
             'message' => 'Hospital updated successfully',
@@ -162,14 +217,83 @@ class HospitalController extends Controller
         ]);
     }
 
+    // public function updateHospital($id, Request $request)
+    // {
+    //     $hospital = Hospital::find($id);
+
+    //     if (!$hospital) {
+    //         return response()->json([
+    //             'success' => false,
+    //             'message' => 'Hospital not found'
+    //         ], 404);
+    //     }
+
+    //     $request->validate([
+    //         'hospital_id' => 'string|max:10|unique:hospitals,hospital_id,' . $hospital->id,
+    //         'hospital_name' => 'string',
+    //         'military_division' => 'string',
+    //         'address' => 'string',
+    //         'phone_number' => 'string|unique:hospitals,phone_number,' . $hospital->id,
+    //         'created_by' => 'exists:users,id',
+    //         'monthly_remittance_target' => 'required|numeric|min:1',
+    //     ]);
+
+    //     $hospital->update($request->only([
+    //         'hospital_id',
+    //         'hospital_name',
+    //         'military_division',
+    //         'address',
+    //         'phone_number',
+    //         'hospital_remitter',
+    //         'monthly_remittance_target',
+    //     ]));
+
+    //     return response()->json([
+    //         'success' => true,
+    //         'message' => 'Hospital updated successfully',
+    //         'data' => $hospital
+    //     ]);
+    // }
+
+
+
     // Delete a hospital
+
+    
     public function destroy(Hospital $hospital)
     {
+        /* --------------------------------------------
+         | Capture hospital details BEFORE delete
+         |--------------------------------------------*/
+        $hospitalData = [
+            'id' => $hospital->id,
+            'hospital_id' => $hospital->hospital_id,
+            'hospital_name' => $hospital->hospital_name,
+        ];
+
         $hospital->delete();
+
+        /* --------------------------------------------
+         | 🔔 AUDIT LOG EVENT
+         |--------------------------------------------*/
+        event(new ActionPerformed([
+            'actor_id' => auth()->id(),
+            'actor_role' => auth()->user()?->role,
+            'action' => 'delete_hospital',
+            'description' => 'Hospital deleted',
+            'metadata' => $hospitalData,
+        ]));
+
         return response()->noContent();
     }
+    // public function destroy(Hospital $hospital)
+    // {
+    //     $hospital->delete();
+    //     return response()->noContent();
+    // }
 
-    //  Remitter HospitalSummary
+    // // Remitter HospitalSummary
+
     public function remitterHospitalsSummary()
     {
         $user = Auth::user();
