@@ -47,7 +47,7 @@ class UserController extends Controller
                 'actor_id' => auth()->id() ?? $user->id, // admin creating user or self
                 'actor_role' => auth()->user()?->role ?? $user->role,
                 'action' => 'register',
-                'description' => 'Registered a new user',
+                'description' => 'Registered a new user' . " ({$user->email})" . " as {$user->role}",
             ]));
 
             Mail::to($user->email)->send(new \App\Mail\UserEmailVerification($user, $tempPassword));
@@ -87,7 +87,7 @@ class UserController extends Controller
             'actor_id' => $user->id,
             'actor_role' => $user->role,
             'action' => 'send_reset_link',
-            'description' => 'Requested password reset link',
+            'description' => "$user->email requested password reset link",
         ]));
         // Send email
         Mail::raw("Reset your password using this link: $resetLink", function ($message) use ($user) {
@@ -134,7 +134,7 @@ class UserController extends Controller
             'actor_id' => $user->id,
             'actor_role' => $user->role,
             'action' => 'reset_password',
-            'description' => 'Reset password successfully',
+            'description' => "$user->email reset password successfully",
         ]));
 
         DB::table('password_reset_tokens')->where('email', $request->email)->delete();
@@ -165,7 +165,7 @@ class UserController extends Controller
                 'actor_id' => auth()->id(),
                 'actor_role' => auth()->user()->role,
                 'action' => 'login',
-                'description' => 'User logged in successfully',
+                'description' => auth()->user()->email . " logged in successfully",
             ]));
 
             \Log::debug('Dispatched ActionPerformed event (login)', [
@@ -213,7 +213,6 @@ class UserController extends Controller
             'message' => 'User not authenticated'
         ], 401);
     }
-
 
     // Fetch a single user
     public function getUser($id)
@@ -309,8 +308,8 @@ class UserController extends Controller
         event(new ActionPerformed([
             'actor_id' => auth()->id(),
             'actor_role' => auth()->user()?->role,
-            'action' => 'delete_user',
-            'description' => "Deleted user {$user->email}",
+            'action' => 'disable_user',
+            'description' => "Disabled user {$user->email}",
         ]));
         return response()->json([
             'success' => true,

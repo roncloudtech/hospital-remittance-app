@@ -4,10 +4,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Notifications\Notifiable;
 
 class Hospital extends Model
 {
-    use SoftDeletes;
+    use SoftDeletes, Notifiable;
     //
     /**
      * The attributes that are mass assignable.

@@ -6,6 +6,10 @@ use App\Http\Controllers\TicketController;
 use App\Http\Controllers\HospitalController;
 use App\Http\Controllers\RemittanceController;
 use App\Http\Controllers\HospitalRemittanceController;
+use App\Http\Controllers\NotificationController;
+
+
+
 
 /*
 |--------------------------------------------------------------------------
@@ -63,6 +67,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/remittance', [HospitalRemittanceController::class, 'store']); // Submit remittance
     Route::get('/remittance/hospital/{hospital_id}', [HospitalRemittanceController::class, 'getHospitalRemittances']); // Get remittances for a hospital
     Route::get('/hospitals/{hospital_id}/cumulative-status/{year}/{month}', [HospitalController::class, 'getHospitalCumulativeStatus']); // Get cumulative remittance status for a hospital
+
+    // Notifications
+    Route::get('/notifications', [NotificationController::class, 'index']);
+    Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount']);
+    Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead']);
+    Route::post('/notifications/read-all', [NotificationController::class, 'markAllAsRead']);
 });
 
 

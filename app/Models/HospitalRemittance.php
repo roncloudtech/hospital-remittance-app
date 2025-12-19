@@ -3,9 +3,11 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Notifications\Notifiable;
 
 class HospitalRemittance extends Model
 {
+    use Notifiable;
     protected $fillable = [
         'hospital_id', 
         'year', 
