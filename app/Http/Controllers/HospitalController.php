@@ -61,7 +61,7 @@ class HospitalController extends Controller
                 'actor_id' => auth()->id(),
                 'actor_role' => auth()->user()?->role,
                 'action' => 'create_hospital',
-                'description' => 'Created a new hospital and assigned a remitter',
+                'description' => "Created a new hospital ($hospital->hospital_name) and assigned a remitter ($remitter->email)",
                 'metadata' => [
                     'hospital_id' => $hospital->hospital_id,
                     'hospital_name' => $hospital->hospital_name,
@@ -86,7 +86,7 @@ class HospitalController extends Controller
     // Fetch all hospitals
     public function getHospitals()
     {
-        $hospitals = Hospital::all();
+        $hospitals = Hospital::withTrashed()->get();
         return $hospitals;
     }
 
@@ -202,7 +202,7 @@ class HospitalController extends Controller
             'actor_id' => auth()->id(),
             'actor_role' => auth()->user()?->role,
             'action' => 'update_hospital',
-            'description' => 'Updated hospital details',
+            'description' => "Updated hospital ($hospital->hospital_name) details",
             'metadata' => [
                 'hospital_id' => $hospital->hospital_id,
                 'hospital_name' => $hospital->hospital_name,
@@ -217,83 +217,95 @@ class HospitalController extends Controller
         ]);
     }
 
-    // public function updateHospital($id, Request $request)
-    // {
-    //     $hospital = Hospital::find($id);
-
-    //     if (!$hospital) {
-    //         return response()->json([
-    //             'success' => false,
-    //             'message' => 'Hospital not found'
-    //         ], 404);
-    //     }
-
-    //     $request->validate([
-    //         'hospital_id' => 'string|max:10|unique:hospitals,hospital_id,' . $hospital->id,
-    //         'hospital_name' => 'string',
-    //         'military_division' => 'string',
-    //         'address' => 'string',
-    //         'phone_number' => 'string|unique:hospitals,phone_number,' . $hospital->id,
-    //         'created_by' => 'exists:users,id',
-    //         'monthly_remittance_target' => 'required|numeric|min:1',
-    //     ]);
-
-    //     $hospital->update($request->only([
-    //         'hospital_id',
-    //         'hospital_name',
-    //         'military_division',
-    //         'address',
-    //         'phone_number',
-    //         'hospital_remitter',
-    //         'monthly_remittance_target',
-    //     ]));
-
-    //     return response()->json([
-    //         'success' => true,
-    //         'message' => 'Hospital updated successfully',
-    //         'data' => $hospital
-    //     ]);
-    // }
-
-
-
-    // Delete a hospital
-
-    
-    public function destroy(Hospital $hospital)
+    // Soft Delete Hospital
+    public function destroy($id)
     {
-        /* --------------------------------------------
-         | Capture hospital details BEFORE delete
-         |--------------------------------------------*/
-        $hospitalData = [
-            'id' => $hospital->id,
-            'hospital_id' => $hospital->hospital_id,
-            'hospital_name' => $hospital->hospital_name,
-        ];
+        try {
 
-        $hospital->delete();
+            // Try to find the hospital
+            $hospital = Hospital::find($id);
 
-        /* --------------------------------------------
-         | 🔔 AUDIT LOG EVENT
-         |--------------------------------------------*/
-        event(new ActionPerformed([
-            'actor_id' => auth()->id(),
-            'actor_role' => auth()->user()?->role,
-            'action' => 'delete_hospital',
-            'description' => 'Hospital deleted',
-            'metadata' => $hospitalData,
-        ]));
+            if (!$hospital) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Hospital not found',
+                ], 404);
+            }
 
-        return response()->noContent();
+            // Soft delete the hospital
+            $hospital->delete();
+
+            // 🔔 Audit Log
+            event(new ActionPerformed([
+                'actor_id' => auth()->id(),
+                'actor_role' => auth()->user()?->role,
+                'action' => 'disable_hospital',
+                'description' => "Disabled hospital {$hospital->hospital_name}",
+                'metadata' => [
+                    'hospital_id' => $hospital->hospital_id,
+                    'hospital_name' => $hospital->hospital_name,
+                ],
+            ]));
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Hospital disabled successfully',
+                'hospital' => $hospital,
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to disable hospital',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
-    // public function destroy(Hospital $hospital)
-    // {
-    //     $hospital->delete();
-    //     return response()->noContent();
-    // }
+
+    // Restore Hospital
+    public function restore($id)
+    {
+        try {
+
+            $hospital = Hospital::withTrashed()->find($id);
+
+            if (!$hospital) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Hospital not found',
+                ], 404);
+            }
+
+            // Restore hospital
+            $hospital->restore();
+
+            // 🔔 Audit Log
+            event(new ActionPerformed([
+                'actor_id' => auth()->id(),
+                'actor_role' => auth()->user()?->role,
+                'action' => 'restore_hospital',
+                'description' => "Restored hospital {$hospital->hospital_name}",
+                'metadata' => [
+                    'hospital_id' => $hospital->hospital_id,
+                    'hospital_name' => $hospital->hospital_name,
+                ],
+            ]));
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Hospital restored successfully',
+                'hospital' => $hospital,
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to restore hospital',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
 
     // // Remitter HospitalSummary
-
     public function remitterHospitalsSummary()
     {
         $user = Auth::user();

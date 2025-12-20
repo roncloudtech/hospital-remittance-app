@@ -9,8 +9,6 @@ use App\Http\Controllers\HospitalRemittanceController;
 use App\Http\Controllers\NotificationController;
 
 
-
-
 /*
 |--------------------------------------------------------------------------
 | Public Routes
@@ -56,6 +54,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/addhospital', [HospitalController::class, 'addHospital']);
     Route::get('/my-hospitals', [HospitalController::class, 'fetchRemitterHospitals']);
     Route::put('/hospital/update/{id}', [HospitalController::class, 'updateHospital']);
+    Route::delete('/hospital/delete/{id}', [HospitalController::class, 'destroy']);
+    Route::put('/hospital/restore/{id}', [HospitalController::class, 'restore']);
 
     // Tickets
     Route::post('/tickets', [TicketController::class, 'store']);

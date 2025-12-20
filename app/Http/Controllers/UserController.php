@@ -189,30 +189,36 @@ class UserController extends Controller
 
         return response()->json([
             'message' => 'Invalid military credentials',
-
         ], 401);
     }
 
+    // Logout Method
     public function logout(Request $request)
     {
-        if ($request->user()) {
-            $request->user()->tokens()->delete();
+        $user = $request->user();
+
+        if (!$user) {
             return response()->json([
-                'message' => 'Logout successful'
-            ]);
+                'message' => 'User not authenticated'
+            ], 401);
         }
 
+        // 🔥 Log audit BEFORE destroying tokens
         event(new ActionPerformed([
-            'actor_id' => $request->user()->id,
-            'actor_role' => $request->user()->role,
+            'actor_id' => $user->id,
+            'actor_role' => $user->role,
             'action' => 'logout',
-            'description' => 'User logged out',
+            'description' => "($user->role) $user->email logged out",
         ]));
 
+        // ❌ Remove ALL tokens for this user (logout everywhere)
+        $user->tokens()->delete();
+
         return response()->json([
-            'message' => 'User not authenticated'
-        ], 401);
+            'message' => 'Logout successful'
+        ]);
     }
+
 
     // Fetch a single user
     public function getUser($id)
@@ -295,54 +301,72 @@ class UserController extends Controller
     // Soft Delete User
     public function deleteUser($id)
     {
-        // Try to find the user
-        $user = User::find($id);
-        if (!$user) {
+        try {
+
+            $user = User::find($id);
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'User not found',
+                ], 404);
+            }
+            // Soft delete the user
+            $user->delete();
+            event(new ActionPerformed([
+                'actor_id' => auth()->id(),
+                'actor_role' => auth()->user()?->role,
+                'action' => 'disable_user',
+                'description' => "Disabled user {$user->email}",
+            ]));
+            return response()->json([
+                'success' => true,
+                'message' => 'User disabled successfully',
+                'user' => $user,
+            ], 200);
+            // return $user;
+        } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'User not found',
-            ], 404);
+                'message' => 'Failed to disable user',
+                'error' => $e->getMessage()
+            ], 500);
         }
-        // Soft delete the user
-        $user->delete();
-        event(new ActionPerformed([
-            'actor_id' => auth()->id(),
-            'actor_role' => auth()->user()?->role,
-            'action' => 'disable_user',
-            'description' => "Disabled user {$user->email}",
-        ]));
-        return response()->json([
-            'success' => true,
-            'message' => 'User disabled successfully',
-            'user' => $user,
-        ], 200);
-        // return $user;
+        // Try to find the user
     }
 
     // Restore Delete User
     public function restoreUser($id)
     {
-        $user = User::withTrashed()->find($id);
-        if (!$user) {
+        try {
+
+            $user = User::withTrashed()->find($id);
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'User not found',
+                ], 404);
+            }
+            $user->restore();
+
+            event(new ActionPerformed([
+                'actor_id' => auth()->id(),
+                'actor_role' => auth()->user()?->role,
+                'action' => 'restore_user',
+                'description' => "Restored user {$user->email}",
+            ]));
+
+            return response()->json([
+                'success' => true,
+                'message' => 'User restored successfully',
+                'user' => $user,
+            ], 200);
+            // return $user;
+        } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'User not found',
-            ], 404);
+                'message' => 'Failed to restore user',
+                'error' => $e->getMessage()
+            ], 500);
         }
-        $user->restore();
-
-        event(new ActionPerformed([
-            'actor_id' => auth()->id(),
-            'actor_role' => auth()->user()?->role,
-            'action' => 'restore_user',
-            'description' => "Restored user {$user->email}",
-        ]));
-
-        return response()->json([
-            'success' => true,
-            'message' => 'User restored successfully',
-            'user' => $user,
-        ], 200);
-        // return $user;
     }
 }
