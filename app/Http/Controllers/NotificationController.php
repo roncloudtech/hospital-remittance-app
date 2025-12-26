@@ -25,19 +25,20 @@ class NotificationController extends Controller
         ]);
     }
 
+    /**
+     * Get count of unread notifications
+     */
+
     public function unreadCount(Request $request)
     {
         return response()->json([
             'count' => auth()->user()->unreadNotifications()->count(),
         ]);
-        // return response()->json([
-        //     'count' => $request->user()->unreadNotifications()->count()
-        // ]);
     }
 
     /**
      * Mark a single notification as read
-     */
+    */
     public function markAsRead(Request $request, $id)
     {
         try {
@@ -61,7 +62,7 @@ class NotificationController extends Controller
 
     /**
      * Mark all notifications as read
-     */
+    */
     public function markAllAsRead(Request $request)
     {
         auth()->user()

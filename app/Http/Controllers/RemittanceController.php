@@ -11,7 +11,8 @@ class RemittanceController extends Controller
     /**
      * Store a new remittance.
      */
-    public function store(Request $request){
+    public function store(Request $request)
+    {
         $validated = $request->validate([
             'hospital_id' => 'required|exists:hospitals,id',
             'amount' => 'required|numeric|min:0.01',
@@ -36,20 +37,20 @@ class RemittanceController extends Controller
             ]);
 
             event(new ActionPerformed([
-                'actor_id'   => $request->user()->id,
+                'actor_id' => $request->user()->id,
                 'actor_role' => $request->user()->role,
-                'action'     => 'create_remittance',
-                'description'=> "{$request->user()->email} made a new remittance payment of ₦" .
+                'action' => 'create_remittance',
+                'description' => "{$request->user()->email} made a new remittance payment of ₦" .
                     number_format($remittance->amount) .
                     " using {$remittance->payment_method} to {$remittance->hospital->hospital_name}.",
-                'metadata'   => [
-                    'remittance_id'  => $remittance->id,
-                    'hospital_id'    => $remittance->hospital_id,
-                    'hospital_name'  => $remittance->hospital->hospital_name,
-                    'amount'         => $remittance->amount,
+                'metadata' => [
+                    'remittance_id' => $remittance->id,
+                    'hospital_id' => $remittance->hospital_id,
+                    'hospital_name' => $remittance->hospital->hospital_name,
+                    'amount' => $remittance->amount,
                     'payment_method' => $remittance->payment_method,
                     'payment_status' => $remittance->payment_status,
-                    'reference'      => $remittance->payment_reference,
+                    'reference' => $remittance->payment_reference,
                 ],
             ]));
 
@@ -100,7 +101,8 @@ class RemittanceController extends Controller
         }
     }
 
-    public function fetchRemitterRemittances(Request $request){
+    public function fetchRemitterRemittances(Request $request)
+    {
         try {
             // Get authenticated user's ID
             $remitterId = auth()->id(); // Changed from $request->input()
@@ -145,92 +147,91 @@ class RemittanceController extends Controller
     }
 
     // Admin approve or decline remittance
+    public function updateRemittance($id, $action)
+    {
+        try {
+            // --------------------------------------------------
+            // Validate allowed actions
+            // --------------------------------------------------
+            if (!in_array($action, ['success', 'decline', 'pending'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invalid remittance action'
+                ], 400);
+            }
 
-public function updateRemittance($id, $action)
-{
-    try {
-        // --------------------------------------------------
-        // Validate allowed actions
-        // --------------------------------------------------
-        if (!in_array($action, ['success', 'decline', 'pending'])) {
+            // --------------------------------------------------
+            // Find remittance
+            // --------------------------------------------------
+            $remittance = Remittance::with('hospital')->find($id);
+
+            if (!$remittance) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Remittance not found'
+                ], 404);
+            }
+
+            // --------------------------------------------------
+            // Prevent duplicate approval
+            // --------------------------------------------------
+            if ($remittance->payment_status === 'success' && $action === 'success') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Remittance already approved'
+                ], 400);
+            }
+
+            // --------------------------------------------------
+            // Capture old status
+            // --------------------------------------------------
+            $oldStatus = $remittance->payment_status;
+
+            // --------------------------------------------------
+            // Update status
+            // --------------------------------------------------
+            $remittance->payment_status = $action;
+            $remittance->save();
+
+            // --------------------------------------------------
+            // 🔔 AUDIT / NOTIFICATION EVENT
+            // --------------------------------------------------
+            event(new ActionPerformed([
+                'actor_id' => auth()->id(),
+                'actor_role' => auth()->user()?->role,
+                'action' => 'update_remittance_status',
+                'description' => auth()->user()->email .
+                    " updated remittance status from {$oldStatus} to {$action} " .
+                    "for {$remittance->hospital->hospital_name}.",
+                'metadata' => [
+                    'remittance_id' => $remittance->id,
+                    'hospital_id' => $remittance->hospital_id,
+                    'hospital_name' => $remittance->hospital->hospital_name,
+                    'old_status' => $oldStatus,
+                    'new_status' => $action,
+                    'amount' => $remittance->amount,
+                    'reference' => $remittance->payment_reference,
+                ],
+            ]));
+
+            return response()->json([
+                'success' => true,
+                'message' => "Remittance status updated to {$action}",
+                'data' => $remittance,
+            ]);
+
+        } catch (\Throwable $e) {
+            Log::error('Update Remittance Error', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
             return response()->json([
                 'success' => false,
-                'message' => 'Invalid remittance action'
-            ], 400);
+                'message' => 'Failed to update remittance status'
+            ], 500);
         }
-
-        // --------------------------------------------------
-        // Find remittance
-        // --------------------------------------------------
-        $remittance = Remittance::with('hospital')->find($id);
-
-        if (!$remittance) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Remittance not found'
-            ], 404);
-        }
-
-        // --------------------------------------------------
-        // Prevent duplicate approval
-        // --------------------------------------------------
-        if ($remittance->payment_status === 'success' && $action === 'success') {
-            return response()->json([
-                'success' => false,
-                'message' => 'Remittance already approved'
-            ], 400);
-        }
-
-        // --------------------------------------------------
-        // Capture old status
-        // --------------------------------------------------
-        $oldStatus = $remittance->payment_status;
-
-        // --------------------------------------------------
-        // Update status
-        // --------------------------------------------------
-        $remittance->payment_status = $action;
-        $remittance->save();
-
-        // --------------------------------------------------
-        // 🔔 AUDIT / NOTIFICATION EVENT
-        // --------------------------------------------------
-        event(new ActionPerformed([
-            'actor_id'   => auth()->id(),
-            'actor_role' => auth()->user()?->role,
-            'action'     => 'update_remittance_status',
-            'description'=> auth()->user()->email .
-                " updated remittance status from {$oldStatus} to {$action} " .
-                "for {$remittance->hospital->hospital_name}.",
-            'metadata'   => [
-                'remittance_id' => $remittance->id,
-                'hospital_id'   => $remittance->hospital_id,
-                'hospital_name' => $remittance->hospital->hospital_name,
-                'old_status'    => $oldStatus,
-                'new_status'    => $action,
-                'amount'        => $remittance->amount,
-                'reference'     => $remittance->payment_reference,
-            ],
-        ]));
-
-        return response()->json([
-            'success' => true,
-            'message' => "Remittance status updated to {$action}",
-            'data'    => $remittance,
-        ]);
-
-    } catch (\Throwable $e) {
-        Log::error('Update Remittance Error', [
-            'error' => $e->getMessage(),
-            'trace' => $e->getTraceAsString(),
-        ]);
-
-        return response()->json([
-            'success' => false,
-            'message' => 'Failed to update remittance status'
-        ], 500);
     }
-}
 
 }
 

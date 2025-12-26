@@ -6,8 +6,6 @@ use App\Events\ActionPerformed;
 use App\Models\AuditLog;
 use App\Models\User;
 use App\Notifications\AdminActionNotification;
-use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Support\Facades\Notification;
 
 class LogAndNotifyAction
@@ -60,28 +58,22 @@ class LogAndNotifyAction
             'ip_address' => request()->ip(),
         ]);
 
-        // Notify admins
+        // // Notify admins
+        // $admins = User::where('role', 'admin')->get();
+        // Notification::send($admins, new AdminActionNotification($log));
+
+
+        // Notify admins (they see everything)
         $admins = User::where('role', 'admin')->get();
         Notification::send($admins, new AdminActionNotification($log));
+
+        // Notify the actor (so remitter sees their own action)
+        if (!empty($data['actor_id'])) {
+            $actor = User::find($data['actor_id']);
+
+            if ($actor) {
+                $actor->notify(new AdminActionNotification($log));
+            }
+        }
     }
 }
-
-
-// class LogAndNotifyAction
-// {
-//     /**
-//      * Create the event listener.
-//      */
-//     public function __construct()
-//     {
-//         //
-//     }
-
-//     /**
-//      * Handle the event.
-//      */
-//     public function handle(object $event): void
-//     {
-//         //
-//     }
-// }
