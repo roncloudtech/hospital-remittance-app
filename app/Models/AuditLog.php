@@ -17,5 +17,11 @@ class AuditLog extends Model
         'description',
         'ip_address',
     ];
+
+    
+    public function actor()
+    {
+        return $this->belongsTo(User::class, 'actor_id');
+    }
 }
 

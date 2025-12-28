@@ -69,8 +69,6 @@ class HospitalRemittanceController extends Controller
             ], 500);
         }
     }
-
-    // public function store(Request $request)
     // {
     //     $validator = Validator::make($request->all(), [
     //         'hospital_id' => 'required|exists:hospitals,id',

@@ -134,7 +134,7 @@ class UserController extends Controller
             'actor_id' => $user->id,
             'actor_role' => $user->role,
             'action' => 'reset_password',
-            'description' => "$user->email reset password successfully",
+            'description' => "$user->firstname, $user->lastname ($user->email) reset password successfully",
         ]));
 
         DB::table('password_reset_tokens')->where('email', $request->email)->delete();
@@ -165,7 +165,7 @@ class UserController extends Controller
                 'actor_id' => auth()->id(),
                 'actor_role' => auth()->user()->role,
                 'action' => 'login',
-                'description' => auth()->user()->email . " logged in successfully",
+                'description' => auth()->user()->firstname . ' ' . auth()->user()->lastname . ', ' . auth()->user()->email . " logged in successfully",
             ]));
 
             \Log::debug('Dispatched ActionPerformed event (login)', [
@@ -188,7 +188,7 @@ class UserController extends Controller
         }
 
         return response()->json([
-            'message' => 'Invalid military credentials',
+            'message' => 'Invalid credentials',
         ], 401);
     }
 
@@ -208,7 +208,7 @@ class UserController extends Controller
             'actor_id' => $user->id,
             'actor_role' => $user->role,
             'action' => 'logout',
-            'description' => "($user->role) $user->email logged out",
+            'description' => "($user->role) $user->firstname $user->lastname, ($user->email) logged out",
         ]));
 
         // ❌ Remove ALL tokens for this user (logout everywhere)
