@@ -10,35 +10,40 @@ class AuditLogController extends Controller
     /**
      * Admin: View & filter audit logs
      */
+
     public function index(Request $request)
     {
         $query = AuditLog::with('actor')->latest();
 
-        // 🔍 Filters
-        if ($request->filled('actor_id')) {
-            $query->where('actor_id', $request->actor_id);
+        /*
+        |--------------------------------------------------------------------------
+        | GLOBAL SEARCH
+        |--------------------------------------------------------------------------
+        */
+        if ($request->filled('search')) {
+            $search = $request->search;
+
+            $query->where(function ($q) use ($search) {
+
+                // Search action, description, IP
+                $q->where('action', 'LIKE', "%{$search}%")
+                    ->orWhere('description', 'LIKE', "%{$search}%")
+                    ->orWhere('ip_address', 'LIKE', "%{$search}%")
+                    ->orWhere('actor_role', 'LIKE', "%{$search}%");
+
+                // Search actor firstname / lastname
+                $q->orWhereHas('actor', function ($actorQuery) use ($search) {
+                    $actorQuery->where('firstname', 'LIKE', "%{$search}%")
+                        ->orWhere('lastname', 'LIKE', "%{$search}%");
+                });
+            });
         }
 
-        if ($request->filled('actor_role')) {
-            $query->where('actor_role', $request->actor_role);
-        }
-
-        if ($request->filled('action')) {
-            $query->where('action', 'LIKE', '%' . $request->action . '%');
-        }
-
-        if ($request->filled('subject_type')) {
-            $query->where('subject_type', $request->subject_type);
-        }
-
-        if ($request->filled('subject_id')) {
-            $query->where('subject_id', $request->subject_id);
-        }
-
-        if ($request->filled('ip_address')) {
-            $query->where('ip_address', $request->ip_address);
-        }
-
+        /*
+        |--------------------------------------------------------------------------
+        | DATE FILTERS (optional, still works)
+        |--------------------------------------------------------------------------
+        */
         if ($request->filled('from_date')) {
             $query->whereDate('created_at', '>=', $request->from_date);
         }
@@ -49,7 +54,11 @@ class AuditLogController extends Controller
 
         $logs = $query->paginate(20);
 
-        // 🧠 Append actor_name
+        /*
+        |--------------------------------------------------------------------------
+        | APPEND ACTOR NAME
+        |--------------------------------------------------------------------------
+        */
         $logs->getCollection()->transform(function ($log) {
             $log->actor_name = $log->actor
                 ? "{$log->actor->firstname} {$log->actor->lastname}"
