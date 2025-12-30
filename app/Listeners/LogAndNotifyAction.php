@@ -71,7 +71,7 @@ class LogAndNotifyAction
         if (!empty($data['actor_id'])) {
             $actor = User::find($data['actor_id']);
 
-            if ($actor) {
+            if ($actor && $actor->role !== 'admin') {
                 $actor->notify(new AdminActionNotification($log));
             }
         }
